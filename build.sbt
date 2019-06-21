@@ -2,6 +2,7 @@ lazy val finchVersion = "0.29.0"
 lazy val circeVersion = "0.11.1"
 lazy val twitterServerVersion = "19.5.1"
 lazy val scalatagsVersion = "0.6.8"
+lazy val vueVersion = "2.6.10"
 lazy val utestVersion = "0.6.9"
 
 lazy val scribeVersion = "2.7.6"
@@ -128,6 +129,7 @@ lazy val js = (project in file("js"))
   .settings(
     name := "witnessium-core-js",
     skip in packageJSDependencies := false,
+    jsDependencies += "org.webjars" % "vue" % vueVersion / "vue.js",
   )
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(lib.js)

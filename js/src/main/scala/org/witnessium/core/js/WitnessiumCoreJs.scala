@@ -1,18 +1,17 @@
 package org.witnessium.core.js
 
-import scalatags.JsDom.all._
-import org.scalajs.dom
-import dom.html
+import scalajs.js
 import scalajs.js.annotation.{JSExport, JSExportTopLevel}
+import scalajs.js.Dynamic.literal
 
 @JSExportTopLevel("WitnessiumCoreJs")
 object WitnessiumCoreJs {
   @JSExport
-  def main(container: html.Div) = {
-    container.appendChild(
-      div(
-        p("Witnessium core js is called.")
-      ).render
-    )
-  }
+  def main(): Vue = new Vue(literal(
+    el = "#app",
+    data = literal(
+      currentAccount = "0xSOMEACCOUNT",
+      accounts = js.Array("0xACCOUNT1", "0xACCOUNT2"),
+    ),
+  ))
 }
