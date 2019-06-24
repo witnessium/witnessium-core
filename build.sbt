@@ -1,6 +1,8 @@
 lazy val finchVersion = "0.29.0"
 lazy val circeVersion = "0.11.1"
 lazy val twitterServerVersion = "19.5.1"
+lazy val bouncycastleVersion = "1.62"
+lazy val scodecBitsVersion = "1.1.12"
 lazy val scalatagsVersion = "0.6.8"
 lazy val refinedVersion = "0.9.8"
 lazy val pureconfigVersion = "0.11.1"
@@ -95,6 +97,7 @@ lazy val sharedSettings = Seq(
   wartremoverWarnings ++= Warts.all,
 
   libraryDependencies ++= Seq(
+    "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %% "scribe" % scribeVersion,
     "com.outr" %% "scribe-slf4j18" % scribeVersion,
@@ -119,6 +122,7 @@ lazy val node = (project in file("node"))
       "com.github.finagle" %% "finchx-circe"  % finchVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "com.twitter" %% "twitter-server" % twitterServerVersion,
+      "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "eu.timepit" %% "refined-pureconfig" % refinedVersion,
     ),
