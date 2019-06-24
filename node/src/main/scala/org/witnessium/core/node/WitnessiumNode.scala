@@ -65,7 +65,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   def main(): Unit = {
     try {
-      val server = Http.server.serve(":8081", api)
+      val server = Http.server.serve(s":${nodeConfig.port}", api)
       onExit {
         val _ = server.close()
       }

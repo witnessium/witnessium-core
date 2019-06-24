@@ -1,0 +1,22 @@
+node {
+  port = 8081
+  private_key = "PrivateKey1"
+}
+
+peers = [
+  {
+    hostname = "localhost"
+    port = 8082
+    public_key = "PublicKey2"
+  },
+  {
+    hostname = "localhost"
+    port = 8083
+    public_key = "PublicKey3"
+  },
+  {
+    hostname = "localhost"
+    port = 8084
+    public_key = "PublicKey4"
+  },
+]
