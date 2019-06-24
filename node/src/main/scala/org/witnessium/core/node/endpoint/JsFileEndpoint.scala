@@ -7,6 +7,7 @@ import io.finch._
 import io.finch.catsEffect._
 
 class JsFileEndpoint {
+  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   def apply(): Endpoint[IO, Buf] = get("resource" :: "js" :: path[String]) { (filename: String) =>
     scribe.info(s"js request: '$filename'")
     Option(getClass.getResourceAsStream("/" + filename)).fold{

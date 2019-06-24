@@ -3,15 +3,16 @@ package view
 
 import scalatags.Text.all._
 import scalatags.Text.tags2.{nav, title}
+import scalatags.generic.Attr
 import util.VueTags._
 
 object Index {
   val Title = "Witnessium Core Node"
   val AddNewAccount = "Add New Account"
 
-  val ariaLabel = attr("aria-label")
+  val ariaLabel: Attr = attr("aria-label")
 
-  val skeleton = html(
+  val skeleton: Html = html(
     head(
       meta(charset:="utf-8"),
       meta(name:="viewport", content:="width=device-width, initial-scale=1"),

@@ -91,6 +91,9 @@ lazy val sharedSettings = Seq(
       oldStrategy(x)
   },
 
+  // wartremover
+  wartremoverWarnings ++= Warts.all,
+
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %% "scribe" % scribeVersion,

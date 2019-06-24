@@ -198,6 +198,8 @@ object VueTags {
     * @param event event name
     * @return [[scalatags.generic.Attr]]
     */
+
+  @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   def vOn(event: String): Attr = attr(s"v-on:$event")
 
   /**

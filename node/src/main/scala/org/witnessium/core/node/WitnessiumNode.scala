@@ -11,6 +11,7 @@ import io.finch.catsEffect._
 //import io.finch.circe._
 //import io.circe.generic.auto._
 import pureconfig.{CamelCase, ConfigFieldMapping, SnakeCase}
+import pureconfig.error.ConfigReaderFailures
 import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
 
@@ -24,16 +25,17 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
    *  Load Config
    ****************************************/
 
-  case class NodeConfig(port: Int, privateKey: String)
-  case class PeerConfig(hostname: String, port: Int, publicKey: String)
-  case class Config(node: NodeConfig, peers: List[PeerConfig])
+  final case class NodeConfig(port: Int, privateKey: String)
+  final case class PeerConfig(hostname: String, port: Int, publicKey: String)
+  final case class Config(node: NodeConfig, peers: List[PeerConfig])
 
-  implicit def hint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, SnakeCase))
+  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, SnakeCase))
 
-  val configEither = pureconfig.loadConfig[Config]
+  val configEither: Either[ConfigReaderFailures, Config] = pureconfig.loadConfig[Config]
   scribe.info(s"load config: $configEither")
 
-  val Config(nodeConfig, peersConfig) = configEither.right.get
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  val Right(Config(nodeConfig, peersConfig)) = configEither
 
   /****************************************
    *  Setup Algebra Interpreters
@@ -46,10 +48,12 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   /****************************************
    *  Setup Endpoints and API
    ****************************************/
+  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   val index: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
 
   val jsFileEndpoint: JsFileEndpoint = new JsFileEndpoint()
 
+  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   lazy val api: Service[Request, Response] = Bootstrap
     .serve[Text.Html](index)
     .serve[Application.Javascript](jsFileEndpoint())
@@ -58,15 +62,14 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   /****************************************
    *  Run Server
    ****************************************/
+  @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   def main(): Unit = {
     try {
       val server = Http.server.serve(":8081", api)
       onExit {
-        server.close()
-        ()
+        val _ = server.close()
       }
-      Await.ready(server)
-      ()
+      val _ = Await.ready(server)
     } catch {
       case _: java.lang.InterruptedException =>
         scribe.info("Server execution is interrupted.")

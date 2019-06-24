@@ -57,6 +57,7 @@ class Vue extends js.Object {
   def $nextTick(callback:js.Function):Unit=js.native
   // Lifecycle
   def $mount(elementOrSelector:js.Any):Vue=js.native
+  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
   def $destroy(destroy:Boolean=false):Unit=js.native
   def $compile(element:raw.Element):js.Function=js.native
   def $addChild():Unit=js.native
