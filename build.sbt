@@ -101,7 +101,7 @@ lazy val sharedSettings = Seq(
 )
 
 lazy val root = (project in file("."))
-  .aggregate(node, js, lib.js, lib.jvm)
+  .aggregate(node, js, common.js, common.jvm)
 
 lazy val node = (project in file("node"))
   .settings(sharedSettings)
@@ -122,7 +122,7 @@ lazy val node = (project in file("node"))
     },
     testFrameworks += new TestFramework("utest.runner.Framework"),
   )
-  .dependsOn(lib.jvm)
+  .dependsOn(common.jvm)
 
 lazy val js = (project in file("js"))
   .settings(sharedSettings)
@@ -132,13 +132,13 @@ lazy val js = (project in file("js"))
     jsDependencies += "org.webjars" % "vue" % vueVersion / "vue.js",
   )
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(lib.js)
+  .dependsOn(common.js)
 
-lazy val lib = crossProject(JSPlatform, JVMPlatform)
+lazy val common = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
   .settings(sharedSettings)
   .settings(
-    name := "witnessium-core-lib",
+    name := "witnessium-core-common",
   )
   .jsSettings(/* ... */)
   .jvmSettings(/* ... */)
