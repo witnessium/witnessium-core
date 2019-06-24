@@ -2,6 +2,8 @@ lazy val finchVersion = "0.29.0"
 lazy val circeVersion = "0.11.1"
 lazy val twitterServerVersion = "19.5.1"
 lazy val scalatagsVersion = "0.6.8"
+lazy val refinedVersion = "0.9.8"
+lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
 lazy val utestVersion = "0.6.9"
 
@@ -93,6 +95,7 @@ lazy val sharedSettings = Seq(
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %% "scribe" % scribeVersion,
     "com.outr" %% "scribe-slf4j18" % scribeVersion,
+    "eu.timepit" %% "refined" % refinedVersion,
     "com.github.ghik" %% "silencer-lib" % silencerVersion % Provided,
     "com.lihaoyi" %%% "utest" % utestVersion % Test,
     compilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
@@ -113,6 +116,8 @@ lazy val node = (project in file("node"))
       "com.github.finagle" %% "finchx-circe"  % finchVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "com.twitter" %% "twitter-server" % twitterServerVersion,
+      "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
+      "eu.timepit" %% "refined-pureconfig" % refinedVersion,
     ),
     (resources in Compile) ++= {
       val f = (fastOptJS in (js, Compile)).value.data
