@@ -99,10 +99,8 @@ lazy val sharedSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-    "com.outr" %% "scribe" % scribeVersion,
-    "com.outr" %% "scribe-slf4j18" % scribeVersion,
-    "eu.timepit" %% "refined" % refinedVersion,
-    "com.github.ghik" %% "silencer-lib" % silencerVersion % Provided,
+    "com.outr" %%% "scribe" % scribeVersion,
+    "eu.timepit" %%% "refined" % refinedVersion,
     "com.lihaoyi" %%% "utest" % utestVersion % Test,
     compilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
     "com.github.ghik" %% "silencer-lib" % silencerVersion % Provided
@@ -123,6 +121,7 @@ lazy val node = (project in file("node"))
       "io.circe" %% "circe-generic" % circeVersion,
       "com.twitter" %% "twitter-server" % twitterServerVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
+      "com.outr" %% "scribe-slf4j18" % scribeVersion,
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "eu.timepit" %% "refined-pureconfig" % refinedVersion,
     ),
