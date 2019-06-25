@@ -4,7 +4,6 @@ import scodec.bits.ByteVector
 import utest._
 
 object CryptoTest extends TestSuite {
-  @SuppressWarnings(Array("org.wartremover.warts.Nothing"))
   val tests = Tests {
     "sha3" - {
       val input = "hello"

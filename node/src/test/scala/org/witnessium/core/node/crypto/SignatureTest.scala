@@ -10,7 +10,6 @@ object SignatureTest extends TestSuite {
     Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.Nothing"))
   val tests = Tests {
     "signature" - {
       val keypair = KeyPair.generate()

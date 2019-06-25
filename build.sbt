@@ -94,7 +94,7 @@ lazy val sharedSettings = Seq(
   },
 
   // wartremover
-  wartremoverWarnings ++= Warts.all,
+  wartremoverWarnings in (Compile, compile) ++= Warts.all,
 
   libraryDependencies ++= Seq(
     "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
