@@ -6,6 +6,7 @@ import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.server.TwitterServer
 import com.twitter.util.Await
+import eu.timepit.refined.pureconfig._
 import io.finch._
 import io.finch.catsEffect._
 //import io.finch.circe._
@@ -25,7 +26,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
    *  Load Config
    ****************************************/
 
-  final case class NodeConfig(port: Int, privateKey: String)
+  final case class NodeConfig(networkId: NetworkId, port: Port, privateKey: Confidential[String])
   final case class PeerConfig(hostname: String, port: Int, publicKey: String)
   final case class Config(node: NodeConfig, peers: List[PeerConfig])
 
