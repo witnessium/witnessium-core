@@ -1,4 +1,5 @@
 package org.witnessium.core
+package model
 
 import java.time.Instant
 import UInt256Refine.UInt256Bytes

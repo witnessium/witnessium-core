@@ -1,4 +1,5 @@
 package org.witnessium.core
+package model
 
 import eu.timepit.refined.W
 import eu.timepit.refined.api.Refined

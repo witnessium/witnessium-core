@@ -1,4 +1,4 @@
-package org.witnessium.core
+package org.witnessium.core.model
 
 final case class Address(value: String) extends AnyVal
 

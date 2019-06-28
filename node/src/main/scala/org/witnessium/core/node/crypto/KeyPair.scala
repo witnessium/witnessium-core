@@ -12,6 +12,8 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.{BCECPrivateKey, BCECPubli
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.math.ec.{ECPoint, FixedPointCombMultiplier}
 
+import model.Signature
+
 final case class KeyPair(privateKey: BigInt, publicKey: BigInt) {
 
   def sign(transactionHash: Array[Byte]): Either[String, Signature] = {

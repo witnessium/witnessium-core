@@ -1,4 +1,5 @@
 package org.witnessium.core
+package model
 
 final case class Transaction(
   networkId: NetworkId,
