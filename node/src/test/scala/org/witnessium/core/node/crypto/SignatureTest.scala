@@ -1,4 +1,5 @@
-package org.witnessium.core.node.crypto
+package org.witnessium.core
+package node.crypto
 
 import java.security.Security
 import org.bouncycastle.jce.provider.BouncyCastleProvider

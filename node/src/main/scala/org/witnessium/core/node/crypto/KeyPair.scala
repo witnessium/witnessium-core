@@ -22,7 +22,7 @@ final case class KeyPair(privateKey: BigInt, publicKey: BigInt) {
     for {
       r256 <- UInt256Refine.from(BigInt(r))
       s256 <- UInt256Refine.from(BigInt(s))
-      recId <- (0 until 4).find { id => Signature.recoverFromSignature(id, r256, s256, transactionHash) === Some(publicKey) }.toRight {
+      recId <- (0 until 4).find { id => recoverFromSignature(id, r256, s256, transactionHash) === Some(publicKey) }.toRight {
         "Could not construct a recoverable key. The credentials might not be valid."
       }
       v <- refineV[Signature.HeaderRange](recId + 27)
