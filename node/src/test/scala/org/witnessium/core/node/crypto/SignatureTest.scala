@@ -15,7 +15,7 @@ object SignatureTest extends TestSuite {
     "signature" - {
       val keypair = KeyPair.generate()
       val msg = "public announcement"
-      val hash = sha3(msg.getBytes)
+      val hash = keccak256(msg.getBytes)
       val Right(signature) = keypair.sign(hash)
 
       val pubKeyFromSignature = signature.signedMessageToKey(msg.getBytes)

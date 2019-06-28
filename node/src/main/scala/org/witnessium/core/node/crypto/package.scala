@@ -23,7 +23,7 @@ package object crypto {
     *  @param input input byte array
     *  @return keccak256 hash bytes
     */
-  def sha3(input: Array[Byte]): Array[Byte] = {
+  def keccak256(input: Array[Byte]): Array[Byte] = {
     val kecc = new Keccak.Digest256()
     kecc.update(input, 0, input.length)
     kecc.digest
@@ -32,7 +32,7 @@ package object crypto {
   implicit class SignatureOps(val signature: Signature) extends AnyVal {
     def signedMessageToKey(message: Array[Byte]): Either[String, BigInt] = {
       val header = signature.v.value & 0xFF
-      val messageHash = sha3(message)
+      val messageHash = keccak256(message)
       val recId = header - 27
       recoverFromSignature(recId, signature.r, signature.s, messageHash)
         .toRight("Could not recover public key from signature")
