@@ -98,6 +98,7 @@ lazy val sharedSettings = Seq(
 
   libraryDependencies ++= Seq(
     "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
+    "io.circe" %%% "circe-generic" % circeVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %%% "scribe" % scribeVersion,
     "eu.timepit" %%% "refined" % refinedVersion,
@@ -118,7 +119,6 @@ lazy val node = (project in file("node"))
     libraryDependencies ++= Seq(
       "com.github.finagle" %% "finchx-core"  % finchVersion,
       "com.github.finagle" %% "finchx-circe"  % finchVersion,
-      "io.circe" %% "circe-generic" % circeVersion,
       "com.twitter" %% "twitter-server" % twitterServerVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
       "com.outr" %% "scribe-slf4j18" % scribeVersion,

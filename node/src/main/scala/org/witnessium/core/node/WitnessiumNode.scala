@@ -4,19 +4,23 @@ package node
 import cats.effect.IO
 import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.{Request, Response}
+import com.twitter.finagle.param.Stats
+import com.twitter.io.Buf
 import com.twitter.server.TwitterServer
 import com.twitter.util.Await
 import eu.timepit.refined.pureconfig._
+import io.circe.generic.auto._
 import io.finch._
 import io.finch.catsEffect._
-//import io.finch.circe._
-//import io.circe.generic.auto._
+import io.finch.circe._
 import pureconfig.{CamelCase, ConfigFieldMapping, SnakeCase}
 import pureconfig.error.ConfigReaderFailures
 import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
 
-import endpoint.JsFileEndpoint
+import codec.circe._
+import endpoint.{JsFileEndpoint, TransactionEndpoint}
+import service.TransactionService
 import util.ServingHtml
 import view.Index
 
@@ -46,19 +50,29 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
    *  Setup Services
    ****************************************/
 
+  val transactionService: TransactionService[IO] = new TransactionService[IO]
+
   /****************************************
    *  Setup Endpoints and API
    ****************************************/
   @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
-  val index: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
+  private val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
 
-  val jsFileEndpoint: JsFileEndpoint = new JsFileEndpoint()
+  private val jsonEndpoint = new TransactionEndpoint(transactionService).Post
+
+  private val javascriptEndpoint: Endpoint[IO, Buf] = new JsFileEndpoint().Get
 
   @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   lazy val api: Service[Request, Response] = Bootstrap
-    .serve[Text.Html](index)
-    .serve[Application.Javascript](jsFileEndpoint())
+    .serve[Text.Html](htmlEndpoint)
+    .serve[Application.Json](jsonEndpoint)
+    .serve[Application.Javascript](javascriptEndpoint)
     .toService
+
+  scribe.info(s"=== Endpoints ===")
+  scribe.info(s"HTML: $htmlEndpoint")
+  scribe.info(s"JSON: $jsonEndpoint")
+  scribe.info(s"Javascript: $javascriptEndpoint")
 
   /****************************************
    *  Run Server
@@ -66,10 +80,16 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   def main(): Unit = {
     try {
-      val server = Http.server.serve(s":${nodeConfig.port}", api)
+      val server = Http.server
+        .withStreaming(enabled = true)
+        .configured(Stats(statsReceiver))
+        .serve(s":${nodeConfig.port}", api)
+
       onExit {
-        val _ = server.close()
+        { val _ = adminHttpServer.close() }
+        { val _ = server.close() }
       }
+
       val _ = Await.ready(server)
     } catch {
       case _: java.lang.InterruptedException =>
