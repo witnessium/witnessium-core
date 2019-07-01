@@ -15,6 +15,9 @@ project/plugins/project/
 # config
 application.conf
 
+# sway db
+sway/
+
 # ide
 .bloop
 .idea

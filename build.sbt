@@ -3,8 +3,10 @@ lazy val circeVersion = "0.11.1"
 lazy val twitterServerVersion = "19.5.1"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
+lazy val scodecCoreVersion = "1.11.4"
 lazy val scalatagsVersion = "0.6.8"
 lazy val refinedVersion = "0.9.8"
+lazy val swaydbVersion = "0.8-beta.8"
 lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
 lazy val utestVersion = "0.7.1"
@@ -98,10 +100,12 @@ lazy val sharedSettings = Seq(
 
   libraryDependencies ++= Seq(
     "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
+    "org.scodec" %%% "scodec-core" % scodecCoreVersion,
     "io.circe" %%% "circe-generic" % circeVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %%% "scribe" % scribeVersion,
     "eu.timepit" %%% "refined" % refinedVersion,
+    "eu.timepit" %%% "refined-scodec" % refinedVersion,
     "com.lihaoyi" %%% "utest" % utestVersion % Test,
     compilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
     "com.github.ghik" %% "silencer-lib" % silencerVersion % Provided
@@ -121,6 +125,7 @@ lazy val node = (project in file("node"))
       "com.github.finagle" %% "finchx-circe"  % finchVersion,
       "com.twitter" %% "twitter-server" % twitterServerVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
+      "io.swaydb" %% "swaydb" % swaydbVersion,
       "com.outr" %% "scribe-slf4j18" % scribeVersion,
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "eu.timepit" %% "refined-pureconfig" % refinedVersion,
