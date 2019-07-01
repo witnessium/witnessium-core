@@ -12,7 +12,7 @@ object SignatureTest extends TestSuite {
   }
 
   val tests = Tests {
-    "signature" - {
+    test("signature"){
       val keypair = KeyPair.generate()
       val msg = "public announcement"
       val hash = keccak256(msg.getBytes)

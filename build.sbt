@@ -7,7 +7,7 @@ lazy val scalatagsVersion = "0.6.8"
 lazy val refinedVersion = "0.9.8"
 lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
-lazy val utestVersion = "0.6.9"
+lazy val utestVersion = "0.7.1"
 
 lazy val scribeVersion = "2.7.6"
 lazy val acyclicVersion = "0.2.0"
