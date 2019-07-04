@@ -3,7 +3,6 @@ package node
 package endpoint
 
 import cats.effect.IO
-import io.circe.generic.auto._
 import io.finch._
 import io.finch.circe._
 import io.finch.catsEffect._

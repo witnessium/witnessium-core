@@ -58,21 +58,21 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   private val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
 
-  private val jsonEndpoint = new TransactionEndpoint(transactionService).Post
-
   private val javascriptEndpoint: Endpoint[IO, Buf] = new JsFileEndpoint().Get
+
+  private val jsonEndpoint = new TransactionEndpoint(transactionService).Post
 
   @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   lazy val api: Service[Request, Response] = Bootstrap
     .serve[Text.Html](htmlEndpoint)
-    .serve[Application.Json](jsonEndpoint)
     .serve[Application.Javascript](javascriptEndpoint)
+    .serve[Application.Json](jsonEndpoint)
     .toService
 
   scribe.info(s"=== Endpoints ===")
   scribe.info(s"HTML: $htmlEndpoint")
-  scribe.info(s"JSON: $jsonEndpoint")
   scribe.info(s"Javascript: $javascriptEndpoint")
+  scribe.info(s"JSON: $jsonEndpoint")
 
   /****************************************
    *  Run Server

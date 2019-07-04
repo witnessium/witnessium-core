@@ -5,6 +5,7 @@ import java.time.Instant
 import UInt256Refine.UInt256Bytes
 
 final case class BlockHeader(
+  number: BigInt,
   parentHash: UInt256Bytes,
   stateRoot: UInt256Bytes,
   transactionsRoot: UInt256Bytes,
