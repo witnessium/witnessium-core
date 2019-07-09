@@ -1,6 +1,7 @@
 package org.witnessium.core
 package node.service
 
+import datatype.UInt256Refine
 import model.Transaction
 
 class TransactionService[F[_]] {

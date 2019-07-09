@@ -9,7 +9,7 @@ import org.bouncycastle.math.ec.{ECAlgorithms, ECPoint}
 import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
 import org.bouncycastle.jcajce.provider.digest.Keccak
 
-import UInt256Refine.UInt256BigInt
+import datatype.UInt256BigInt
 import model.Signature
 
 package object crypto {

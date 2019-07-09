@@ -1,16 +1,26 @@
-package org.witnessium.core.model
+package org.witnessium.core
+package model
 
 import scodec.bits.ByteVector
 
-final case class Address private[model](bytes: ByteVector) extends AnyVal {
+final case class Address private (bytes: ByteVector) extends AnyVal {
   override def toString: String = bytes.toBase64
 }
 
 object Address {
+
+  def apply(bytes: ByteVector): Either[String, Address] = Either.cond( bytes.size === 20L,
+    new Address(bytes),
+    s"Byte size is not 20: $bytes"
+  )
+
   def fromPublicKey(hashFunction: Array[Byte] => Array[Byte])(publicKey: BigInt): Address = {
     val hash = hashFunction(publicKey.toByteArray)
-    Address(ByteVector(hash, hash.size - 20, 20))
+    new Address(ByteVector(hash, hash.size - 20, 20))
   }
 
-  def fromBase64(base64: String): Either[String, Address] = ByteVector.fromBase64Descriptive(base64).map(Address(_))
+  def fromBase64(base64: String): Either[String, Address] = for {
+    bytes <- ByteVector.fromBase64Descriptive(base64)
+    address <- Address(bytes)
+  } yield address
 }

@@ -3,11 +3,14 @@ package node
 package endpoint
 
 import cats.effect.IO
+import io.circe.generic.auto._
+import io.circe.refined._
 import io.finch._
 import io.finch.circe._
 import io.finch.catsEffect._
 
 import codec.circe._
+import datatype.UInt256Refine
 import model.Transaction
 import service.TransactionService
 

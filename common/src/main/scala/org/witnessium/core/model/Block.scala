@@ -1,10 +1,10 @@
 package org.witnessium.core
 package model
 
-import scala.collection.SortedSet
+import datatype.UInt256Bytes
 
 final case class Block(
   header: BlockHeader,
-  transactionHashes: SortedSet[UInt256Refine.UInt256Bytes],
-  signatures: SortedSet[Signature],
+  transactionHashes: Set[UInt256Bytes],
+  signatures: Set[Signature],
 )

@@ -1,8 +1,6 @@
 package org.witnessium.core
 package model
 
-import scala.collection.SortedSet
+import datatype.UInt256Bytes
 
-import UInt256Refine.UInt256Bytes
-
-final case class State(unused: SortedSet[(Address, UInt256Bytes)], transactionMap: Map[UInt256Bytes, Transaction])
+final case class State(unused: Set[(Address, UInt256Bytes)], transactions: Set[Transaction])
