@@ -1,4 +1,5 @@
 package org.witnessium.core
+package datatype
 
 import scodec.bits.ByteVector
 
@@ -40,10 +41,8 @@ object UInt256Refine {
         value.asInstanceOf[UInt256BigInt],
         s"Bigint out of range to be UInt256: $value"
       )
-      def toBytes(value: UInt256BigInt): ByteVector = {
-        val bytes = ByteVector.view(value.toByteArray)
-        ByteVector.low(32L - bytes.size) ++ bytes
-      }
+      def toBytes(value: UInt256BigInt): ByteVector = ByteVector.view(value.toByteArray).takeRight(32L).padLeft(32L)
+
       def toBigInt(value: UInt256BigInt): BigInt = value
     }
   }

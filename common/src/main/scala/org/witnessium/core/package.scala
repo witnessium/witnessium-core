@@ -1,11 +1,5 @@
 package org.witnessium
 
-package object core {
+import core.util.TypeSafeEqualSupport
 
-  type NetworkId = Int
-
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  implicit final class TypeSafeEqualOps[A](self: A) {
-    def ===(other: A): Boolean = self == other
-  }
-}
+package object core extends TypeSafeEqualSupport

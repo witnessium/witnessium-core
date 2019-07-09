@@ -11,6 +11,7 @@ import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.codecs.{bits, discriminated, provide, sizedVector, uint8}
 import shapeless.Sized
 import shapeless.nat._16
+import datatype.UInt256Refine
 
 sealed trait MerkleTrie
 final case class Branch(prefix: BitVector, children: MerkleTrie.Children) extends MerkleTrie

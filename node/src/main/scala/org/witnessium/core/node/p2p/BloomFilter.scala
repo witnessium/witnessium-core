@@ -3,7 +3,7 @@ package node.p2p
 
 import scala.util.hashing.MurmurHash3
 import scodec.bits.BitVector
-import UInt256Refine.UInt256Bytes
+import datatype.UInt256Bytes
 
 final case class BloomFilter(bits: BitVector, numberOfHash: Int) {
   def check(keccak256: UInt256Bytes): Boolean = BloomFilter.hashes(numberOfHash)(keccak256) forall bits.get

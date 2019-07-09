@@ -12,6 +12,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.{BCECPrivateKey, BCECPubli
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.math.ec.{ECPoint, FixedPointCombMultiplier}
 
+import datatype.UInt256Refine
 import model.Signature
 
 final case class KeyPair(privateKey: BigInt, publicKey: BigInt) {

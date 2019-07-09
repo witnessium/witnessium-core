@@ -19,7 +19,9 @@ import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
 
 import codec.circe._
+import datatype.Confidential
 import endpoint.{JsFileEndpoint, TransactionEndpoint}
+import model.NetworkId
 import service.TransactionService
 import util.ServingHtml
 import view.Index
@@ -36,6 +38,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
 
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, SnakeCase))
 
+  @SuppressWarnings(Array("org.wartremover.warts.Nothing"))
   val configEither: Either[ConfigReaderFailures, Config] = pureconfig.loadConfig[Config]
   scribe.info(s"load config: $configEither")
 

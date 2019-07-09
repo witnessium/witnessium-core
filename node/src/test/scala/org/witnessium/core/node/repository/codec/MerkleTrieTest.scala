@@ -6,6 +6,7 @@ import scodec.DecodeResult
 import scodec.bits.{BitVector, ByteVector}
 import shapeless.nat._16
 import shapeless.syntax.sized._
+import datatype.UInt256Refine
 import utest._
 
 object MerkleTrieTest extends TestSuite {

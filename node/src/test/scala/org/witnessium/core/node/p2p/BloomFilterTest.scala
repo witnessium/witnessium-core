@@ -3,7 +3,7 @@ package node.p2p
 
 import scala.util.Random
 import scodec.bits.ByteVector
-import UInt256Refine.UInt256Bytes
+import datatype.{UInt256Bytes, UInt256Refine}
 import utest._
 
 object BloomFilterTest extends TestSuite {

@@ -9,11 +9,14 @@ lazy val refinedVersion = "0.9.8"
 lazy val swaydbVersion = "0.8-beta.8"
 lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
-lazy val utestVersion = "0.7.1"
+lazy val scalajsJavaTimeVersion = "0.2.5"
 
+lazy val utestVersion = "0.7.1"
+lazy val scalacheckVersion = "1.14.0"
 lazy val scribeVersion = "2.7.6"
 lazy val acyclicVersion = "0.2.0"
 lazy val silencerVersion = "1.4.1"
+lazy val splainVersion = "0.4.1"
 
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
@@ -25,6 +28,7 @@ lazy val sharedSettings = Seq(
   autoCompilerPlugins := true,
   addCompilerPlugin("com.lihaoyi" %% "acyclic" % acyclicVersion),
   addCompilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
+  addCompilerPlugin("io.tryp" %% "splain" % splainVersion cross CrossVersion.patch),
 
   cancelable in Global := true,
 
@@ -98,15 +102,20 @@ lazy val sharedSettings = Seq(
   // wartremover
   wartremoverWarnings in (Compile, compile) ++= Warts.all,
 
+  testFrameworks += new TestFramework("utest.runner.Framework"),
+
   libraryDependencies ++= Seq(
     "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
     "org.scodec" %%% "scodec-core" % scodecCoreVersion,
     "io.circe" %%% "circe-generic" % circeVersion,
+    "io.circe" %%% "circe-refined" % circeVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %%% "scribe" % scribeVersion,
     "eu.timepit" %%% "refined" % refinedVersion,
     "eu.timepit" %%% "refined-scodec" % refinedVersion,
     "com.lihaoyi" %%% "utest" % utestVersion % Test,
+    "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
+    "eu.timepit" %%% "refined-scalacheck" % refinedVersion % Test,
     compilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
     "com.github.ghik" %% "silencer-lib" % silencerVersion % Provided
   )
@@ -136,7 +145,6 @@ lazy val node = (project in file("node"))
       val dep = (packageMinifiedJSDependencies in (js, Compile)).value
       Seq(f, fmap, dep)
     },
-    testFrameworks += new TestFramework("utest.runner.Framework"),
   )
   .dependsOn(common.jvm)
 
@@ -158,5 +166,7 @@ lazy val common = crossProject(JSPlatform, JVMPlatform)
   .settings(
     name := "witnessium-core-common",
   )
-  .jsSettings(/* ... */)
+  .jsSettings(
+    libraryDependencies += "org.scala-js" %%% "scalajs-java-time" % scalajsJavaTimeVersion,
+  )
   .jvmSettings(/* ... */)
