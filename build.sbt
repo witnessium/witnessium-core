@@ -144,7 +144,7 @@ lazy val node = (project in file("node"))
       Seq(f, fmap, dep)
     },
   )
-  .dependsOn(common.jvm)
+  .dependsOn(common.jvm % "test->test;compile->compile")
 
 lazy val js = (project in file("js"))
   .settings(sharedSettings)
