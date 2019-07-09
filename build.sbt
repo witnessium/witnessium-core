@@ -3,7 +3,6 @@ lazy val circeVersion = "0.11.1"
 lazy val twitterServerVersion = "19.5.1"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
-lazy val scodecCoreVersion = "1.11.4"
 lazy val scalatagsVersion = "0.6.8"
 lazy val refinedVersion = "0.9.8"
 lazy val swaydbVersion = "0.8-beta.8"
@@ -106,7 +105,6 @@ lazy val sharedSettings = Seq(
 
   libraryDependencies ++= Seq(
     "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
-    "org.scodec" %%% "scodec-core" % scodecCoreVersion,
     "io.circe" %%% "circe-generic" % circeVersion,
     "io.circe" %%% "circe-refined" % circeVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
