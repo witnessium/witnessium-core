@@ -8,5 +8,7 @@ import scalatags.Text.TypedTag
 package object node {
   type Html = TypedTag[String]
 
-  type Port = Int Refined Interval.Closed[W.`0`.T, W.`65535`.T]
+  type PortRange = Interval.Closed[W.`0`.T, W.`65535`.T]
+  type Port = Int Refined PortRange
+
 }

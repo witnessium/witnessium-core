@@ -122,4 +122,11 @@ trait ModelArbitrary {
       newTransactions <- arbitrarySet[Transaction].arbitrary
     } yield GossipMessage(blockSuggestionList.toSet, blockVotes, newTransactions))
   }
+
+  implicit val arbitraryNodeStatus: Arbitrary[NodeStatus] = Arbitrary(for{
+    networkId <- arbitraryBigNat.arbitrary
+    genesisHash <- arbitraryUInt256Bytes.arbitrary
+    bestHash <- arbitraryUInt256Bytes.arbitrary
+    number <- arbitraryBigNat.arbitrary
+  } yield NodeStatus(networkId, genesisHash, bestHash, number))
 }

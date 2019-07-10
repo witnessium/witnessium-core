@@ -1,6 +1,6 @@
 lazy val finchVersion = "0.29.0"
 lazy val circeVersion = "0.11.1"
-lazy val twitterServerVersion = "19.5.1"
+lazy val twitterVersion = "19.6.0"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
 lazy val scalatagsVersion = "0.6.8"
@@ -107,6 +107,7 @@ lazy val sharedSettings = Seq(
     "org.scodec" %%% "scodec-bits" % scodecBitsVersion,
     "io.circe" %%% "circe-generic" % circeVersion,
     "io.circe" %%% "circe-refined" % circeVersion,
+    "io.circe" %%% "circe-parser" % circeVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %%% "scribe" % scribeVersion,
     "eu.timepit" %%% "refined" % refinedVersion,
@@ -129,9 +130,10 @@ lazy val node = (project in file("node"))
 
     libraryDependencies ++= Seq(
       "com.github.finagle" %% "finchx-core"  % finchVersion,
-      "com.github.finagle" %% "finchx-circe" % finchVersion,
-      "com.twitter" %% "twitter-server" % twitterServerVersion,
-      "com.twitter" %% "finagle-stats"  % twitterServerVersion,
+      "com.github.finagle" %% "finchx-circe"  % finchVersion,
+      "com.twitter" %% "twitter-server" % twitterVersion,
+      "com.twitter" %% "finagle-stats"  % twitterVersion,
+      "io.catbird" %% "catbird-effect" % twitterVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
       "io.swaydb" %% "swaydb" % swaydbVersion,
       "com.outr" %% "scribe-slf4j18" % scribeVersion,

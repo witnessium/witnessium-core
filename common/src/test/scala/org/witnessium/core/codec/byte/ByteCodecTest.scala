@@ -62,5 +62,9 @@ object ByteCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary 
     test("MerkleTrieNode") {
       successfulRoundTrip[MerkleTrieNode].checkUTest()
     }
+
+    test("NodeStatus") {
+      successfulRoundTrip[NodeStatus].checkUTest()
+    }
   }
 }
