@@ -80,8 +80,7 @@ trait ModelArbitrary {
   implicit val arbitraryBlock: Arbitrary[Block] = Arbitrary(for {
     heder <- arbitraryBlockHeader.arbitrary
     transactionHashes <- arbitrarySet[UInt256Refine.UInt256Bytes].arbitrary
-    signatures <- arbitrarySet[Signature].arbitrary
-  } yield Block(heder, transactionHashes, signatures))
+  } yield Block(heder, transactionHashes))
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   implicit val arbitraryMerkleTrieNode: Arbitrary[MerkleTrieNode] = Arbitrary(for {
@@ -101,4 +100,26 @@ trait ModelArbitrary {
       }
     }
   } yield node)
+
+  implicit val arbitraryGossipMessage: Arbitrary[GossipMessage] = {
+    def blockVotesArbitrary(blockSuggestionsSize: Int): Arbitrary[Map[UInt256Refine.UInt256Bytes, Set[Signature]]] = {
+
+      val blockVoteArbitrary: Arbitrary[(UInt256Refine.UInt256Bytes, Set[Signature])] = Arbitrary(for {
+        hash <- arbitraryUInt256Bytes.arbitrary
+        numberOfSig <- Gen.choose(0, 4)
+        sigs <- Gen.listOfN(numberOfSig, arbitrarySignature.arbitrary)
+      } yield (hash, sigs.toSet))
+
+      Arbitrary(for {
+        list <- Gen.listOfN(blockSuggestionsSize, blockVoteArbitrary.arbitrary)
+      } yield list.toMap)
+    }
+
+    Arbitrary(for {
+      blockSuggestionsSize <- Gen.choose(0, 4)
+      blockSuggestionList <- Gen.listOfN(blockSuggestionsSize, arbitraryBlock.arbitrary)
+      blockVotes <- blockVotesArbitrary(blockSuggestionsSize).arbitrary
+      newTransactions <- arbitrarySet[Transaction].arbitrary
+    } yield GossipMessage(blockSuggestionList.toSet, blockVotes, newTransactions))
+  }
 }

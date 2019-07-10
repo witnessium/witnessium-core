@@ -22,6 +22,12 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
   def newRepo: BlockRepositoryInterpreter = new BlockRepositoryInterpreter(newSwayDb, newSwayDb, newSwayDb)
 
   val block = Arbitrary.arbitrary[Block].pureApply(Gen.Parameters.default, Seed.random())
+
+  val sigSet = (for {
+    numberOfSig <- Gen.choose(0, 4)
+    sigList <- Gen.listOfN(numberOfSig, arbitrarySignature.arbitrary)
+  } yield sigList.toSet).pureApply(Gen.Parameters.default, Seed.random())
+
   val blockHash = UInt256Refine.from{
     ByteVector.view(crypto.keccak256(ByteEncoder[BlockHeader].encode(block.header).toArray))
   }.toOption.get
@@ -40,7 +46,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
     test("put and getHeader") {
       val repo = newRepo
       (for {
-        _ <- repo.put(block)
+        _ <- repo.put(block, sigSet)
         headerEither <- repo.getHeader(blockHash)
         _ <- repo.close()
       } yield {
@@ -51,7 +57,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
     test("put and getTransactionHashes") {
       val repo = newRepo
       (for {
-        _ <- repo.put(block)
+        _ <- repo.put(block, sigSet)
         transactionHashesEither <- repo.getTransactionHashes(blockHash)
         _ <- repo.close()
       } yield {
@@ -64,11 +70,11 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
     test("put and getSignatures") {
       val repo = newRepo
       (for {
-        _ <- repo.put(block)
+        _ <- repo.put(block, sigSet)
         sigsEither <- repo.getSignatures(blockHash)
         _ <- repo.close()
       } yield {
-        assertMatch(sigsEither){ case Right(sigs) if sigs === block.signatures.toList => }
+        assertMatch(sigsEither){ case Right(sigs) if sigs === sigSet.toList => }
       }).toFuture
     }
   }

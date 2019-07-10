@@ -61,5 +61,11 @@ object CirceCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary
     test("Block"){
       successfulRoundTrip[Block].checkUTest()
     }
+
+    // Too slow to test everytime
+//    test("GossipMessage"){
+//      successfulRoundTrip[GossipMessage].checkUTest()
+//    }
+
   }
 }
