@@ -129,8 +129,9 @@ lazy val node = (project in file("node"))
 
     libraryDependencies ++= Seq(
       "com.github.finagle" %% "finchx-core"  % finchVersion,
-      "com.github.finagle" %% "finchx-circe"  % finchVersion,
+      "com.github.finagle" %% "finchx-circe" % finchVersion,
       "com.twitter" %% "twitter-server" % twitterServerVersion,
+      "com.twitter" %% "finagle-stats"  % twitterServerVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
       "io.swaydb" %% "swaydb" % swaydbVersion,
       "com.outr" %% "scribe-slf4j18" % scribeVersion,
