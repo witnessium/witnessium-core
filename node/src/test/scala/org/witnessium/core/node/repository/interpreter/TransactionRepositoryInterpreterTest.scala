@@ -3,8 +3,6 @@ package node
 package repository
 package interpreter
 
-import scala.concurrent.ExecutionContext
-
 import eu.timepit.refined.refineMV
 import eu.timepit.refined.numeric.NonNegative
 
@@ -20,8 +18,6 @@ import model.{Address, Signed, Transaction}
 import utest._
 
 object TransactionRepositoryInterpreterTest extends TestSuite {
-
-  implicit val ec = ExecutionContext.global
 
   def newRepo: TransactionRepositoryInterpreter =
     new TransactionRepositoryInterpreter(swaydb.memory.zero.Map[Array[Byte], Array[Byte]]().get)
@@ -48,8 +44,11 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
   val tests = Tests {
     test("get from empty repository") {
       val repo = newRepo
-      repo.get(transactionHash).map {
-        assertMatch(_){ case Left(_) => }
+      for {
+        trEither <- repo.get(transactionHash)
+        _ <- repo.close()
+      } yield {
+        assertMatch(trEither){ case Left(_) => }
       }
     }
 
@@ -58,6 +57,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
       for {
         _ <- repo.put(signedTransaction)
         trEither <- repo.get(transactionHash)
+        _ <- repo.close()
       } yield {
         assertMatch(trEither){ case Right(tr) if tr === signedTransaction => }
       }
@@ -69,6 +69,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
         _ <- repo.put(signedTransaction)
         _ <- repo.removeWithHash(transactionHash)
         result <- repo.get(transactionHash)
+        _ <- repo.close()
       } yield {
         assertMatch(result){ case Left(_) => }
       }
@@ -80,6 +81,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
         _ <- repo.put(signedTransaction)
         _ <- repo.remove(signedTransaction)
         result <- repo.get(transactionHash)
+        _ <- repo.close()
       } yield {
         assertMatch(result){ case Left(_) => }
       }

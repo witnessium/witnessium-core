@@ -3,9 +3,8 @@ package node
 package repository
 package interpreter
 
-import scala.concurrent.{ExecutionContext, Future}
-
 import scodec.bits.ByteVector
+import swaydb.data.IO
 import swaydb.serializers.Default._
 
 import datatype.{UInt256Bytes, UInt256Refine}
@@ -15,9 +14,7 @@ import utest._
 
 object StateRepositoryInterpreterTest extends TestSuite {
 
-  implicit val ec = ExecutionContext.global
-
-  def newRepo: StateRepository[Future] =
+  def newRepo: StateRepository[IO] =
     new StateRepositoryInterpreter(swaydb.memory.zero.Map[Array[Byte], Array[Byte]]().get)
 
   val targetAddress = Address(ByteVector.fromHex("0x0102030405060708091011121314151617181920").get).toOption.get
@@ -33,7 +30,10 @@ object StateRepositoryInterpreterTest extends TestSuite {
   val tests = Tests {
     test("contains from empty repository") {
       val repo = newRepo
-      repo.contains(targetAddress, transactionHash1).map { result =>
+      for {
+        result <- repo.contains(targetAddress, transactionHash1)
+        _ <- repo.close()
+      } yield {
         assert(result === false)
       }
     }
@@ -43,6 +43,7 @@ object StateRepositoryInterpreterTest extends TestSuite {
       for {
         _ <- repo.put(targetAddress, transactionHash1)
         result <- repo.contains(targetAddress, transactionHash1)
+        _ <- repo.close()
       } yield {
         assert(result === true)
       }
@@ -54,6 +55,7 @@ object StateRepositoryInterpreterTest extends TestSuite {
         _ <- repo.put(targetAddress, transactionHash1)
         _ <- repo.put(targetAddress, transactionHash2)
         result <- repo.get(targetAddress)
+        _ <- repo.close()
       } yield {
         assert(result === Seq(transactionHash1, transactionHash2))
       }
@@ -66,6 +68,7 @@ object StateRepositoryInterpreterTest extends TestSuite {
         _ <- repo.put(targetAddress, transactionHash2)
         _ <- repo.remove(targetAddress, transactionHash1)
         result <- repo.get(targetAddress)
+        _ <- repo.close()
       } yield {
         assert(result === Seq(transactionHash2))
       }

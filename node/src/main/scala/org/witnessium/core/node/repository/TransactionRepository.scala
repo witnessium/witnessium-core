@@ -14,4 +14,6 @@ trait TransactionRepository[F[_]] {
 
   def remove(signedTransaction: Transaction.Signed): F[Unit]
 
+  def close(): F[Unit]
+
 }

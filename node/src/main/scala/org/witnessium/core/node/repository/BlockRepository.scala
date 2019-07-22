@@ -13,4 +13,6 @@ trait BlockRepository[F[_]] {
   def getSignatures(blockHash: UInt256Bytes): F[Either[String, Seq[Signature]]]
 
   def put(block: Block): F[Unit]
+
+  def close(): F[Unit]
 }

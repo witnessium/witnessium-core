@@ -3,9 +3,7 @@ package node
 package repository
 package interpreter
 
-import scala.concurrent.{ExecutionContext, Future}
 import cats.data.EitherT
-import cats.implicits._
 import scodec.bits.ByteVector
 import swaydb._
 import swaydb.data.IO
@@ -13,40 +11,37 @@ import swaydb.data.IO
 import codec.byte.{ByteDecoder, ByteEncoder}
 import datatype.UInt256Bytes
 import model.{Signature, Transaction}
+import util.SwayIOCats._
 
-@SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
-class TransactionRepositoryInterpreter(
-  swayMap: Map[Array[Byte], Array[Byte], IO]
-)(implicit ec: ExecutionContext) extends TransactionRepository[Future] {
+class TransactionRepositoryInterpreter(swayMap: Map[Array[Byte], Array[Byte], IO]) extends TransactionRepository[IO] {
 
-  def get(transactionHash: UInt256Bytes): Future[Either[String, Transaction.Signed]] = (for {
+  def get(transactionHash: UInt256Bytes): IO[Either[String, Transaction.Signed]] = (for {
     array <- EitherT.fromOptionF(
-      swayMap.get(transactionHash.toBytes.toArray).toFuture,
+      swayMap.get(transactionHash.toBytes.toArray),
       s"Does not exist transaction with hash $transactionHash"
     )
-    decodeResult <- EitherT.fromEither[Future](ByteDecoder[Transaction.Signed].decode(ByteVector.view(array)))
+    decodeResult <- EitherT.fromEither[IO](ByteDecoder[Transaction.Signed].decode(ByteVector.view(array)))
   } yield decodeResult.value).value
 
-  def put(signedTransaction: Transaction.Signed): Future[Either[String, Unit]] = (for{
-    transactionBytes <- EitherT.pure[Future, String](ByteEncoder[Transaction].encode(signedTransaction.value))
-    signatureBytes <- EitherT.pure[Future, String](ByteEncoder[Signature].encode(signedTransaction.signature))
+  def put(signedTransaction: Transaction.Signed): IO[Either[String, Unit]] = (for{
+    transactionBytes <- EitherT.pure[IO, String](ByteEncoder[Transaction].encode(signedTransaction.value))
+    signatureBytes <- EitherT.pure[IO, String](ByteEncoder[Signature].encode(signedTransaction.signature))
     hash = crypto.keccak256(transactionBytes.toArray)
-    _ <- EitherT.liftF[Future, String, Unit]{
-      swayMap.put(hash, (transactionBytes ++ signatureBytes).toArray).toFuture.map(_ => ())
+    _ <- EitherT.liftF[IO, String, Unit]{
+      swayMap.put(hash, (transactionBytes ++ signatureBytes).toArray).map(_ => ())
     }
   } yield ()).value
 
-  def removeWithHash(transactionHash: UInt256Bytes): Future[Unit] =
-    removeWithHashArray(transactionHash.toArray)
+  def removeWithHash(transactionHash: UInt256Bytes): IO[Unit] = removeWithHashArray(transactionHash.toArray)
 
-  private def removeWithHashArray(hashArray: Array[Byte]): Future[Unit] = {
-    swayMap.remove(hashArray).map(_ => ()).toFuture
-  }
+  private def removeWithHashArray(hashArray: Array[Byte]): IO[Unit] = swayMap.remove(hashArray).map(_ => ())
 
-  def remove(signedTransaction: Transaction.Signed): Future[Unit] = {
+  def remove(signedTransaction: Transaction.Signed): IO[Unit] = {
     val byteArray = ByteEncoder[Transaction].encode(signedTransaction.value).toArray
     val hash = crypto.keccak256(byteArray)
     removeWithHashArray(hash)
   }
-}
 
+  def close(): IO[Unit] = swayMap.closeDatabase()
+
+}

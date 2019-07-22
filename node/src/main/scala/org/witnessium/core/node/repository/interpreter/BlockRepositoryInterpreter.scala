@@ -55,4 +55,10 @@ class BlockRepositoryInterpreter(
         ByteEncoder[List[Signature]].encode(block.signatures.toList).toArray)
     } yield ()
   }
+
+  def close(): IO[Unit] = for {
+    _ <- swayHeaderMap.closeDatabase()
+    _ <- swayTransactionsMap.closeDatabase()
+    _ <- swaySignaturesMap.closeDatabase()
+  } yield ()
 }

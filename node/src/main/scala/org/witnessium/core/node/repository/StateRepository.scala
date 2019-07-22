@@ -13,4 +13,7 @@ trait StateRepository[F[_]] {
   def put(address: Address, transactionHash: UInt256Bytes): F[Unit]
 
   def remove(address: Address, transactionHash: UInt256Bytes): F[Unit]
+
+  def close(): F[Unit]
+
 }
