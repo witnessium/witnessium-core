@@ -4,7 +4,8 @@ package service
 package interpreter
 
 import cats.effect.IO
-import model.NodeStatus
+import model.{GossipMessage, NodeStatus}
+import p2p.BloomFilter
 
 class GossipServiceInterpreter extends GossipService[IO] {
 
@@ -30,4 +31,6 @@ class GossipServiceInterpreter extends GossipService[IO] {
     bestHash = hexToUInt256Bytes("0x80602b0aff00f9dc017f017f7fff75f06700637f29cd807f506c35d37fff7f80"),
     number = nat(1),
   )))
+
+  override def bloomfilter(bloomfilter: BloomFilter): IO[Either[String, GossipMessage]] = ???
 }
