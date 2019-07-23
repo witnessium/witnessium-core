@@ -54,15 +54,16 @@ trait ModelArbitrary {
 
   implicit val arbitraryTransaction: Arbitrary[Transaction] = Arbitrary(for {
     networkId <- arbitraryBigNat.arbitrary
-    inputs <- arbitrarySet[Address].arbitrary
-    outputs <- arbitrarySet[(Address, BigNat)].arbitrary
-  } yield Transaction(networkId, inputs, outputs))
+    inputSize <- Gen.choose(0, 10)
+    outputSize <- Gen.choose(0, 10)
+    inputs <- Gen.listOfN(inputSize, arbitraryAddress.arbitrary)
+    outputs <- Gen.listOfN(outputSize, arbitraryTuple2[Address, BigNat].arbitrary)
+  } yield Transaction(networkId, inputs.toSet, outputs.toSet))
 
   implicit def arbitrarySigned[A](implicit aa: Arbitrary[A]): Arbitrary[Signed[A]] = Arbitrary(for {
     a <- aa.arbitrary
     sig <- arbitrarySignature.arbitrary
   } yield Signed(a, sig))
-
 
   implicit val arbitraryState: Arbitrary[State] = Arbitrary(for {
     unused <- arbitrarySet[(Address, UInt256Refine.UInt256Bytes)].arbitrary

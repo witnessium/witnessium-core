@@ -4,7 +4,8 @@ package service
 package interpreter
 
 import cats.effect.IO
-import model.{GossipMessage, NodeStatus}
+import datatype.UInt256Bytes
+import model.{GossipMessage, NodeStatus, Transaction}
 import p2p.BloomFilter
 
 class GossipServiceInterpreter extends GossipService[IO] {
@@ -12,7 +13,7 @@ class GossipServiceInterpreter extends GossipService[IO] {
   import eu.timepit.refined.refineV
   import eu.timepit.refined.numeric.NonNegative
   import scodec.bits.ByteVector
-  import datatype.{UInt256Bytes, UInt256Refine}
+  import datatype.UInt256Refine
   import model.BigNat
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))//, "org.wartremover.warts.Nothing"))
@@ -33,4 +34,9 @@ class GossipServiceInterpreter extends GossipService[IO] {
   )))
 
   override def bloomfilter(bloomfilter: BloomFilter): IO[Either[String, GossipMessage]] = ???
+
+  override def unknownTransactions(
+    transactionHashes: Seq[UInt256Bytes]
+  ): IO[Either[String, Seq[Transaction.Signed]]] = ???
+
 }

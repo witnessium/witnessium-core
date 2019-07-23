@@ -12,7 +12,8 @@ import io.circe.refined._
 import io.circe.syntax._
 
 import codec.circe._
-import model.{GossipMessage, NodeStatus}
+import datatype.UInt256Bytes
+import model.{GossipMessage, NodeStatus, Transaction}
 import p2p.BloomFilter
 
 class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient[Future] {
@@ -39,6 +40,21 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
       scribe.info(s"Gossip bloomfilter response: $response")
       scribe.info(s"Gossip bloomfilter response body: ${response.contentString}")
       parser.decode[GossipMessage](response.contentString).left.map{ _ =>
+        s"$response: ${response.contentString}"
+      }
+    }
+  }
+
+  def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): Future[Either[String, Seq[Transaction.Signed]]] = {
+    val request = Request(Method.Post, ApiPath.gossip.unknownTransactions.toUrl)
+    request.setContentString(transactionHashes.asJson.toString)
+    request.setContentTypeJson()
+    scribe.info(s"Gossip unknownTransactions request: $request")
+
+    for (response <- client(request)) yield {
+      scribe.info(s"Gossip unknownTransactions response: $response")
+      scribe.info(s"Gossip unknownTransactions response body: ${response.contentString}")
+      parser.decode[Seq[Transaction.Signed]](response.contentString).left.map{ _ =>
         s"$response: ${response.contentString}"
       }
     }

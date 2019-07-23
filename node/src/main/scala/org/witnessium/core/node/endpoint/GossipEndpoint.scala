@@ -10,7 +10,8 @@ import io.finch.catsEffect._
 import io.finch.circe._
 
 import codec.circe._
-import model.{GossipMessage, NodeStatus}
+import datatype.UInt256Bytes
+import model.{GossipMessage, NodeStatus, Transaction}
 import p2p.BloomFilter
 import service.GossipService
 
@@ -32,6 +33,19 @@ class GossipEndpoint(gossipService: GossipService[IO]) {
       case Right(message) => Ok(message)
       case Left(errorMsg) =>
         scribe.info(s"Sending gossip bloomfilter error response: $errorMsg")
+        InternalServerError(new Exception(errorMsg))
+    }
+  }
+
+  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
+  val UnknownTransactions: Endpoint[IO, Seq[Transaction.Signed]] = post(ApiPath.gossip.unknownTransactions.toEndpoint ::
+    jsonBody[List[UInt256Bytes]]
+  ) { (transactionHashes: List[UInt256Bytes]) =>
+    scribe.info(s"Receive gossip unknown transactions request: $transactionHashes")
+    gossipService.unknownTransactions(transactionHashes).map {
+      case Right(transactions) => Ok(transactions)
+      case Left(errorMsg) =>
+        scribe.info(s"Sending gossip unknown transactions error response: $errorMsg")
         InternalServerError(new Exception(errorMsg))
     }
   }
