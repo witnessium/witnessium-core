@@ -30,40 +30,40 @@ object StateRepositoryInterpreterTest extends TestSuite {
   val tests = Tests {
     test("contains from empty repository") {
       val repo = newRepo
-      for {
+      (for {
         result <- repo.contains(targetAddress, transactionHash1)
         _ <- repo.close()
       } yield {
         assert(result === false)
-      }
+      }).toFuture
     }
 
     test("put and contains") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(targetAddress, transactionHash1)
         result <- repo.contains(targetAddress, transactionHash1)
         _ <- repo.close()
       } yield {
         assert(result === true)
-      }
+      }).toFuture
     }
 
     test("put and get") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(targetAddress, transactionHash1)
         _ <- repo.put(targetAddress, transactionHash2)
         result <- repo.get(targetAddress)
         _ <- repo.close()
       } yield {
         assert(result === Seq(transactionHash1, transactionHash2))
-      }
+      }).toFuture
     }
 
     test("remove") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(targetAddress, transactionHash1)
         _ <- repo.put(targetAddress, transactionHash2)
         _ <- repo.remove(targetAddress, transactionHash1)
@@ -71,7 +71,7 @@ object StateRepositoryInterpreterTest extends TestSuite {
         _ <- repo.close()
       } yield {
         assert(result === Seq(transactionHash2))
-      }
+      }).toFuture
     }
   }
 }

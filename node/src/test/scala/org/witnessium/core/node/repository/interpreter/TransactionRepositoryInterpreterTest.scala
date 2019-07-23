@@ -44,47 +44,47 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
   val tests = Tests {
     test("get from empty repository") {
       val repo = newRepo
-      for {
+      (for {
         trEither <- repo.get(transactionHash)
         _ <- repo.close()
       } yield {
         assertMatch(trEither){ case Left(_) => }
-      }
+      }).toFuture
     }
 
     test("put and get") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(signedTransaction)
         trEither <- repo.get(transactionHash)
         _ <- repo.close()
       } yield {
         assertMatch(trEither){ case Right(tr) if tr === signedTransaction => }
-      }
+      }).toFuture
     }
 
     test("removeWithHash") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(signedTransaction)
         _ <- repo.removeWithHash(transactionHash)
         result <- repo.get(transactionHash)
         _ <- repo.close()
       } yield {
         assertMatch(result){ case Left(_) => }
-      }
+      }).toFuture
     }
 
     test("remove") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(signedTransaction)
         _ <- repo.remove(signedTransaction)
         result <- repo.get(transactionHash)
         _ <- repo.close()
       } yield {
         assertMatch(result){ case Left(_) => }
-      }
+      }).toFuture
     }
   }
 }

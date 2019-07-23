@@ -29,28 +29,28 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
   val tests = Tests {
     test("getHeader from empty repository") {
       val repo = newRepo
-      for {
+      (for {
         headerEither <- repo.getHeader(blockHash)
         _ <- repo.close()
       } yield {
         assertMatch(headerEither){ case Left(_) => }
-      }
+      }).toFuture
     }
 
     test("put and getHeader") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(block)
         headerEither <- repo.getHeader(blockHash)
         _ <- repo.close()
       } yield {
         assertMatch(headerEither){ case Right(header) if header === block.header => }
-      }
+      }).toFuture
     }
 
     test("put and getTransactionHashes") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(block)
         transactionHashesEither <- repo.getTransactionHashes(blockHash)
         _ <- repo.close()
@@ -58,18 +58,18 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
         assertMatch(transactionHashesEither){
           case Right(transactionHashes) if transactionHashes === block.transactionHashes.toList =>
         }
-      }
+      }).toFuture
     }
 
     test("put and getSignatures") {
       val repo = newRepo
-      for {
+      (for {
         _ <- repo.put(block)
         sigsEither <- repo.getSignatures(blockHash)
         _ <- repo.close()
       } yield {
         assertMatch(sigsEither){ case Right(sigs) if sigs === block.signatures.toList => }
-      }
+      }).toFuture
     }
   }
 }
