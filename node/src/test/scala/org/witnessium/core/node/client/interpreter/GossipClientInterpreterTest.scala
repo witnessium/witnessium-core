@@ -17,7 +17,7 @@ import codec.byte.ByteEncoder
 import codec.circe._
 import datatype.{UInt256Bytes, UInt256Refine}
 import endpoint._
-import model.{GossipMessage, ModelArbitrary, NodeStatus, State, Transaction}
+import model.{Block, GossipMessage, ModelArbitrary, NodeStatus, State, Transaction}
 import p2p.BloomFilter
 import service.GossipService
 
@@ -33,18 +33,24 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
     UInt256Refine.from(hash).toOption.get
   }
 
-  val sampleNodeStatus = arbitraryNodeStatus.arbitrary.pureApply(Gen.Parameters.default, Seed.random())
+  val seed = Seed.random()
+
+  val sampleNodeStatus = arbitraryNodeStatus.arbitrary.pureApply(Gen.Parameters.default, seed)
 
   val sampleTransactions = Arbitrary(for {
     count <- Gen.choose(1, 10)
     transactions <- Gen.listOfN(count, arbitrarySigned[Transaction].arbitrary)
-  } yield transactions).arbitrary.pureApply(Gen.Parameters.default, Seed.random())
+  } yield transactions).arbitrary.pureApply(Gen.Parameters.default, seed)
 
   val sampleTransactionHashes = sampleTransactions.map{ signedTransaction => hash(signedTransaction.value) }
 
-  val sampleState = arbitraryState.arbitrary.pureApply(Gen.Parameters.default, Seed.random())
+  val sampleState = arbitraryState.arbitrary.pureApply(Gen.Parameters.default, seed)
 
   val sampleStateRoot = hash(sampleState)
+
+  val sampleBlock = arbitraryBlock.arbitrary.pureApply(Gen.Parameters.default, seed)
+
+  val sampleBlockHash = hash(sampleBlock.header)
 
   val endpoint = new GossipEndpoint(new GossipService[IO] {
     def status: IO[Either[String, NodeStatus]] = {
@@ -68,11 +74,21 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
         s"Not Found: $stateRoot"
       )
     }
+
+    def block(blockHash: UInt256Bytes): IO[Either[String, Block]] = IO.pure{
+      Either.cond(blockHash === sampleBlockHash,
+        sampleBlock,
+        s"Not Found: $blockHash"
+      )
+    }
   })
 
-  val service = {
-    endpoint.Status :+: endpoint.BloomFilter :+: endpoint.UnknownTransactions :+: endpoint.State
-  }.toService
+  val service = (endpoint.Status
+    :+: endpoint.BloomFilter
+    :+: endpoint.UnknownTransactions
+    :+: endpoint.State
+    :+: endpoint.Block
+  ).toService
 
   def withTestServerAndClient[A](testBody: GossipClient[Future] => Future[A]): A = {
 
@@ -124,6 +140,12 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
       for {
         response <- client.state(sampleStateRoot)
       } yield assert(response === Right(sampleState))
+    }
+
+    test("block") - withTestServerAndClient{ client =>
+      for {
+        response <- client.block(sampleBlockHash)
+      } yield assert(response === Right(sampleBlock))
     }
   }
 }

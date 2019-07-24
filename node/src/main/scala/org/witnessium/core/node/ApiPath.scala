@@ -29,5 +29,9 @@ object ApiPath {
     object state extends ApiPath {
       override val path = NonEmptyList.of("gossip", "state")
     }
+
+    object block extends ApiPath {
+      override val path = NonEmptyList.of("gossip", "block")
+    }
   }
 }

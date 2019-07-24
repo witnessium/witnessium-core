@@ -11,7 +11,7 @@ import io.finch.circe._
 
 import codec.circe._
 import datatype.UInt256Bytes
-import model.{GossipMessage, NodeStatus, State, Transaction}
+import model.{Block, GossipMessage, NodeStatus, State, Transaction}
 import p2p.BloomFilter
 import service.GossipService
 
@@ -59,6 +59,19 @@ class GossipEndpoint(gossipService: GossipService[IO]) {
       case Right(state) => Ok(state)
       case Left(errorMsg) =>
         scribe.info(s"Sending gossip state not found response: $errorMsg")
+        NotFound(new Exception(errorMsg))
+    }
+  }
+
+  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
+  val Block: Endpoint[IO, Block] = get(
+    ApiPath.gossip.block.toEndpoint :: param[UInt256Bytes]("blockHash")
+  ){ (blockHash: UInt256Bytes) =>
+    scribe.info(s"Receive gossip block request: $blockHash")
+    gossipService.block(blockHash).map {
+      case Right(block) => Ok(block)
+      case Left(errorMsg) =>
+        scribe.info(s"Sending gossip block not found response: $errorMsg")
         NotFound(new Exception(errorMsg))
     }
   }
