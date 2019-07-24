@@ -2,7 +2,7 @@ package org.witnessium.core
 package codec.circe
 
 import java.time.Instant
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import scodec.bits.{BitVector, ByteVector}
 
 import datatype.{UInt256BigInt, UInt256Bytes, UInt256Refine}
@@ -43,4 +43,11 @@ trait CirceCodec {
   }
 
   implicit val circeAddressEncoder: Encoder[Address] = circeByteVectorEncoder.contramap[Address](_.bytes)
+
+  implicit val circeUInt256BytesKeyDecoder: KeyDecoder[UInt256Bytes] = KeyDecoder.instance((str: String) => for {
+    bytes <- ByteVector.fromBase64(str)
+    refined <- UInt256Refine.from(bytes).toOption
+  } yield refined)
+
+  implicit val circeUInt256BytesKeyEncoder: KeyEncoder[UInt256Bytes] = KeyEncoder.instance(_.toBytes.toBase64)
 }

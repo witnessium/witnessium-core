@@ -4,14 +4,16 @@ package node.p2p
 import scala.util.hashing.MurmurHash3
 import scodec.bits.BitVector
 import datatype.UInt256Bytes
+import model.BigNat
 
-final case class BloomFilter(bits: BitVector, numberOfHash: Int) {
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
+final case class BloomFilter(bits: BitVector, numberOfHash: Int, fromBlockNumber: Option[BigNat] = None) {
   def check(keccak256: UInt256Bytes): Boolean = BloomFilter.hashes(numberOfHash)(keccak256) forall bits.get
 }
 
 object BloomFilter {
 
-  val NumberOfBits: Int = 65536
+  val NumberOfBits: Int = 8192
 
   def from(keccak256s: Seq[UInt256Bytes]): BloomFilter = {
 
