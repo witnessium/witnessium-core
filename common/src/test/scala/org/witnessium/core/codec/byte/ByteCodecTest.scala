@@ -46,10 +46,9 @@ object ByteCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary 
       successfulRoundTrip[Transaction.Signed].checkUTest()
     }
 
-    // Too slow to test everytime 
-//    test("State"){
-//      successfulRoundTrip[State].checkUTest()
-//    }
+    test("State"){
+      successfulRoundTrip[State].checkUTest()
+    }
 
     test("BlockHeader"){
       successfulRoundTrip[BlockHeader].checkUTest()

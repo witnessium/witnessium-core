@@ -81,7 +81,9 @@ trait ModelArbitrary {
   implicit val arbitraryBlock: Arbitrary[Block] = Arbitrary(for {
     heder <- arbitraryBlockHeader.arbitrary
     transactionHashes <- arbitrarySet[UInt256Refine.UInt256Bytes].arbitrary
-  } yield Block(heder, transactionHashes))
+    numberOfVotes <- Gen.choose(1, 10)
+    votes <- Gen.listOfN(numberOfVotes, arbitrarySignature.arbitrary)
+  } yield Block(heder, transactionHashes, votes.toSet))
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   implicit val arbitraryMerkleTrieNode: Arbitrary[MerkleTrieNode] = Arbitrary(for {

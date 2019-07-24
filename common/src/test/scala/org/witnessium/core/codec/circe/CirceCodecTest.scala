@@ -49,10 +49,9 @@ object CirceCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary
       successfulRoundTrip[Transaction.Signed].checkUTest()
     }
 
-    // Too slow to test everytime 
-//    test("State"){
-//      successfulRoundTrip[State].checkUTest()
-//    }
+    test("State"){
+      successfulRoundTrip[State].checkUTest()
+    }
 
     test("BlockHeader"){
       successfulRoundTrip[BlockHeader].checkUTest()
@@ -62,10 +61,9 @@ object CirceCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary
       successfulRoundTrip[Block].checkUTest()
     }
 
-    // Too slow to test everytime
-//    test("GossipMessage"){
-//      successfulRoundTrip[GossipMessage].checkUTest()
-//    }
+    test("GossipMessage"){
+      successfulRoundTrip[GossipMessage].checkUTest()
+    }
 
     test("NodeStatus") {
       successfulRoundTrip[NodeStatus].checkUTest()
