@@ -2,6 +2,9 @@ package org.witnessium.core
 package node
 
 import io.circe._
+import io.finch.DecodeEntity
+import scodec.bits.ByteVector
+import datatype.{UInt256Bytes, UInt256Refine}
 
 package object endpoint {
 
@@ -20,4 +23,10 @@ package object endpoint {
     case e: Exception => Json.obj("message" -> Json.fromString(e.getMessage))
   })
 
+  implicit val uint256Decoder: DecodeEntity[UInt256Bytes] = DecodeEntity.instance[UInt256Bytes]{ s =>
+    (for {
+      bytes <- ByteVector.fromHexDescriptive(s)
+      refined <- UInt256Refine.from(bytes)
+    } yield refined).left.map(msg => new Exception(msg))
+  }
 }

@@ -5,7 +5,7 @@ package interpreter
 
 import cats.effect.IO
 import datatype.UInt256Bytes
-import model.{GossipMessage, NodeStatus, Transaction}
+import model.{GossipMessage, NodeStatus, State, Transaction}
 import p2p.BloomFilter
 
 class GossipServiceInterpreter extends GossipService[IO] {
@@ -39,4 +39,5 @@ class GossipServiceInterpreter extends GossipService[IO] {
     transactionHashes: Seq[UInt256Bytes]
   ): IO[Either[String, Seq[Transaction.Signed]]] = ???
 
+  override def state(stateRoot: UInt256Bytes): IO[Either[String, State]] = ???
 }

@@ -25,5 +25,9 @@ object ApiPath {
     object unknownTransactions extends ApiPath {
       override val path = NonEmptyList.of("gossip", "unknownTransactions")
     }
+
+    object state extends ApiPath {
+      override val path = NonEmptyList.of("gossip", "state")
+    }
   }
 }

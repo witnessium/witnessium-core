@@ -17,7 +17,7 @@ import codec.byte.ByteEncoder
 import codec.circe._
 import datatype.{UInt256Bytes, UInt256Refine}
 import endpoint._
-import model.{GossipMessage, ModelArbitrary, NodeStatus, Transaction}
+import model.{GossipMessage, ModelArbitrary, NodeStatus, State, Transaction}
 import p2p.BloomFilter
 import service.GossipService
 
@@ -27,6 +27,12 @@ import utest._
 
 object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
 
+  private def hash[A: ByteEncoder](a: A): UInt256Bytes = {
+    val bytes = ByteEncoder[A].encode(a)
+    val hash = ByteVector.view(crypto.keccak256(bytes.toArray))
+    UInt256Refine.from(hash).toOption.get
+  }
+
   val sampleNodeStatus = arbitraryNodeStatus.arbitrary.pureApply(Gen.Parameters.default, Seed.random())
 
   val sampleTransactions = Arbitrary(for {
@@ -34,10 +40,11 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
     transactions <- Gen.listOfN(count, arbitrarySigned[Transaction].arbitrary)
   } yield transactions).arbitrary.pureApply(Gen.Parameters.default, Seed.random())
 
-  val sampleTransactionHashes = sampleTransactions.map{ signedTransaction =>
-    val bytes = ByteVector.view(crypto.keccak256(ByteEncoder[Transaction].encode(signedTransaction.value).toArray))
-    UInt256Refine.from(bytes).toOption.get
-  }
+  val sampleTransactionHashes = sampleTransactions.map{ signedTransaction => hash(signedTransaction.value) }
+
+  val sampleState = arbitraryState.arbitrary.pureApply(Gen.Parameters.default, Seed.random())
+
+  val sampleStateRoot = hash(sampleState)
 
   val endpoint = new GossipEndpoint(new GossipService[IO] {
     def status: IO[Either[String, NodeStatus]] = {
@@ -49,13 +56,22 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
     }
 
     def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): IO[Either[String, Seq[Transaction.Signed]]] = {
-      if (transactionHashes === sampleTransactionHashes) IO.pure(Right(sampleTransactions))
-      else IO.pure(Left(s"Incorrect input: $transactionHashes"))
+      IO.pure(Either.cond(transactionHashes === sampleTransactionHashes,
+        sampleTransactions,
+        s"Incorrect input: $transactionHashes"
+      ))
+    }
+
+    def state(stateRoot: UInt256Bytes): IO[Either[String, State]] = IO.pure{
+      Either.cond(stateRoot === sampleStateRoot,
+        sampleState,
+        s"Not Found: $stateRoot"
+      )
     }
   })
 
   val service = {
-    endpoint.Status :+: endpoint.BloomFilter :+: endpoint.UnknownTransactions
+    endpoint.Status :+: endpoint.BloomFilter :+: endpoint.UnknownTransactions :+: endpoint.State
   }.toService
 
   def withTestServerAndClient[A](testBody: GossipClient[Future] => Future[A]): A = {
@@ -102,6 +118,12 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
       for {
         response <- client.unknownTransactions(sampleTransactionHashes)
       } yield assert(response === Right(sampleTransactions))
+    }
+
+    test("state") - withTestServerAndClient{ client =>
+      for {
+        response <- client.state(sampleStateRoot)
+      } yield assert(response === Right(sampleState))
     }
   }
 }

@@ -13,7 +13,7 @@ import io.circe.syntax._
 
 import codec.circe._
 import datatype.UInt256Bytes
-import model.{GossipMessage, NodeStatus, Transaction}
+import model.{GossipMessage, NodeStatus, State, Transaction}
 import p2p.BloomFilter
 
 class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient[Future] {
@@ -53,8 +53,21 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
 
     for (response <- client(request)) yield {
       scribe.info(s"Gossip unknownTransactions response: $response")
-      scribe.info(s"Gossip unknownTransactions response body: ${response.contentString}")
+      scribe.debug(s"Gossip unknownTransactions response body: ${response.contentString}")
       parser.decode[Seq[Transaction.Signed]](response.contentString).left.map{ _ =>
+        s"$response: ${response.contentString}"
+      }
+    }
+  }
+
+  def state(stateRoot: UInt256Bytes): Future[Either[String, State]] = {
+    val request = Request(ApiPath.gossip.state.toUrl, "stateRoot" -> stateRoot.toHex)
+    scribe.info(s"Gossip state request: $request")
+
+    for (response <- client(request)) yield {
+      scribe.info(s"Gossip state response: $response")
+      scribe.debug(s"Gossip state response body: ${response.contentString}")
+      parser.decode[State](response.contentString).left.map{ _ =>
         s"$response: ${response.contentString}"
       }
     }
