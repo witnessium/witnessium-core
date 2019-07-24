@@ -71,10 +71,13 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
 
   val javascriptEndpoint: Endpoint[IO, Buf] = new JsFileEndpoint().Get
 
-  val jsonEndpoint = {
-    gossipEndpoint.Status :+:
-    transactionEndpoint.Post
-  }
+  val jsonEndpoint = (transactionEndpoint.Post
+    :+: gossipEndpoint.Status
+    :+: gossipEndpoint.BloomFilter
+    :+: gossipEndpoint.UnknownTransactions
+    :+: gossipEndpoint.State
+    :+: gossipEndpoint.Block
+  )
 
   val policy: Cors.Policy = Cors.Policy(
     allowsOrigin = _ => Some("*"),
