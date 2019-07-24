@@ -52,7 +52,7 @@ class GossipEndpoint(gossipService: GossipService[IO]) {
 
   @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   val State: Endpoint[IO, State] = get(
-    ApiPath.gossip.state.toEndpoint :: param[UInt256Bytes]("stateRoot")
+    ApiPath.gossip.state.toEndpoint :: path[UInt256Bytes].withToString("stateRoot")
   ){ (stateRoot: UInt256Bytes) =>
     scribe.info(s"Receive gossip state request: $stateRoot")
     gossipService.state(stateRoot).map {
@@ -65,7 +65,7 @@ class GossipEndpoint(gossipService: GossipService[IO]) {
 
   @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   val Block: Endpoint[IO, Block] = get(
-    ApiPath.gossip.block.toEndpoint :: param[UInt256Bytes]("blockHash")
+    ApiPath.gossip.block.toEndpoint :: path[UInt256Bytes].withToString("blockHash")
   ){ (blockHash: UInt256Bytes) =>
     scribe.info(s"Receive gossip block request: $blockHash")
     gossipService.block(blockHash).map {

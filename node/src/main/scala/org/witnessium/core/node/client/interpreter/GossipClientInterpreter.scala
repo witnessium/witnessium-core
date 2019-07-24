@@ -61,7 +61,7 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
   }
 
   def state(stateRoot: UInt256Bytes): Future[Either[String, State]] = {
-    val request = Request(ApiPath.gossip.state.toUrl, "stateRoot" -> stateRoot.toHex)
+    val request = Request(s"${ApiPath.gossip.state.toUrl}/${stateRoot.toHex}")
     scribe.info(s"Gossip state request: $request")
 
     for (response <- client(request)) yield {
@@ -74,7 +74,7 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
   }
 
   def block(blockHash: UInt256Bytes): Future[Either[String, Block]] = {
-    val request = Request(ApiPath.gossip.block.toUrl, "blockHash" -> blockHash.toHex)
+    val request = Request(s"${ApiPath.gossip.block.toUrl}/${blockHash.toHex}")
     scribe.info(s"Gossip block request: $request")
 
     for (response <- client(request)) yield {
