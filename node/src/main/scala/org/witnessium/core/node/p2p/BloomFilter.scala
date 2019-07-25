@@ -3,8 +3,7 @@ package node.p2p
 
 import scala.util.hashing.MurmurHash3
 import scodec.bits.BitVector
-import datatype.UInt256Bytes
-import model.BigNat
+import datatype.{BigNat, UInt256Bytes}
 
 @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 final case class BloomFilter(bits: BitVector, numberOfHash: Int, fromBlockNumber: Option[BigNat] = None) {

@@ -2,7 +2,7 @@ package org.witnessium.core
 package model
 
 import java.time.Instant
-import datatype.UInt256Bytes
+import datatype.{BigNat, UInt256Bytes}
 
 final case class BlockHeader(
   number: BigNat,

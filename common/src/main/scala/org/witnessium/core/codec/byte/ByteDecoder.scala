@@ -14,8 +14,8 @@ import shapeless.nat._16
 import shapeless.ops.nat.ToInt
 import shapeless.syntax.sized._
 
-import datatype.{MerkleTrieNode, UInt256BigInt, UInt256Bytes, UInt256Refine}
-import model.{Address, BigNat, Signature}
+import datatype.{BigNat, MerkleTrieNode, UInt256BigInt, UInt256Bytes, UInt256Refine}
+import model.{Address, Signature}
 import util.refined.bitVector._
 
 trait ByteDecoder[A] {

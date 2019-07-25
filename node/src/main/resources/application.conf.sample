@@ -21,3 +21,9 @@ peers = [
     public_key = "PublicKey4"
   },
 ]
+
+genesis {
+  initial_distribution {
+    "SomeAddress" : 1000000000
+  }
+}

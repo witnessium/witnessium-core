@@ -10,9 +10,9 @@ import eu.timepit.refined.numeric.NonNegative
 import scodec.bits.ByteVector
 import shapeless.{::, Generic, HList, HNil, Lazy}
 
-import datatype.{MerkleTrieNode, UInt256Refined, UInt256Refine}
+import datatype.{BigNat, MerkleTrieNode, UInt256Refined, UInt256Refine}
 import UInt256Refine.UInt256RefineOps
-import model.{Address, BigNat, Signature}
+import model.{Address, Signature}
 
 trait ByteEncoder[A] {
   def encode(a: A): ByteVector

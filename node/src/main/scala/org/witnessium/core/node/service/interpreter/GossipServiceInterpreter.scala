@@ -13,8 +13,7 @@ class GossipServiceInterpreter extends GossipService[IO] {
   import eu.timepit.refined.refineV
   import eu.timepit.refined.numeric.NonNegative
   import scodec.bits.ByteVector
-  import datatype.UInt256Refine
-  import model.BigNat
+  import datatype.{BigNat, UInt256Refine}
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))//, "org.wartremover.warts.Nothing"))
   def nat(n: Int): BigNat = refineV[NonNegative](BigInt(n)).toOption.get

@@ -21,9 +21,9 @@ import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
 
 import codec.circe._
-import datatype.Confidential
+import datatype.{BigNat, Confidential}
 import endpoint.{GossipEndpoint, JsFileEndpoint, TransactionEndpoint}
-import model.NetworkId
+import model.{Address, NetworkId}
 import service.{GossipService, TransactionService}
 import service.interpreter.GossipServiceInterpreter
 import util.ServingHtml
@@ -37,7 +37,8 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
 
   final case class NodeConfig(networkId: NetworkId, port: Port, privateKey: Confidential[String])
   final case class PeerConfig(hostname: String, port: Int, publicKey: String)
-  final case class Config(node: NodeConfig, peers: List[PeerConfig])
+  final case class GenesisConfig(initialDistribution: Map[Address, BigNat])
+  final case class Config(node: NodeConfig, peers: List[PeerConfig], genesis: GenesisConfig)
 
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, SnakeCase))
 
@@ -46,7 +47,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   scribe.info(s"load config: $configEither")
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  val Right(Config(nodeConfig, peersConfig)) = configEither
+  val Right(Config(nodeConfig, peersConfig, genesisConfig)) = configEither
 
   /****************************************
    *  Setup Algebra Interpreters

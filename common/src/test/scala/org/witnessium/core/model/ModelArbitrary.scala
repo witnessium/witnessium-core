@@ -11,7 +11,7 @@ import scodec.bits.{BitVector, ByteVector}
 import shapeless.nat._16
 import shapeless.syntax.sized._
 
-import datatype.{MerkleTrieNode, UInt256Refine}
+import datatype.{BigNat, MerkleTrieNode, UInt256Refine}
 import util.refined.bitVector._
 
 trait ModelArbitrary {
