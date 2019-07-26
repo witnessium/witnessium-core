@@ -3,10 +3,11 @@ package node
 package repository
 package interpreter
 
+import scala.concurrent.Future
 import eu.timepit.refined.refineMV
 import eu.timepit.refined.numeric.NonNegative
-
 import scodec.bits.ByteVector
+import swaydb.data.IO
 import swaydb.serializers.Default._
 
 import org.witnessium.core.codec.byte.ByteEncoder
@@ -18,9 +19,6 @@ import model.{Address, Signed, Transaction}
 import utest._
 
 object TransactionRepositoryInterpreterTest extends TestSuite {
-
-  def newRepo: TransactionRepositoryInterpreter =
-    new TransactionRepositoryInterpreter(swaydb.memory.zero.Map[Array[Byte], Array[Byte]]().get)
 
   val keyPair = KeyPair.generate()
 
@@ -41,50 +39,48 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
 
   val signedTransaction = Signed[Transaction](transaction, signature)
 
+  def withNewRepo[A](testBody: TransactionRepository[IO] => IO[A]): Future[A] = (for {
+    db <- swaydb.memory.Map[Array[Byte], Array[Byte]]()
+    newRepo = new TransactionRepositoryInterpreter(db)
+    result <- testBody(newRepo)
+  } yield result).toFuture
+
   val tests = Tests {
-    test("get from empty repository") {
-      val repo = newRepo
-      (for {
+    test("get from empty repository") - withNewRepo { repo =>
+      for {
         trEither <- repo.get(transactionHash)
-        _ <- repo.close()
       } yield {
         assertMatch(trEither){ case Left(_) => }
-      }).toFuture
+      }
     }
 
-    test("put and get") {
-      val repo = newRepo
-      (for {
+    test("put and get") - withNewRepo { repo =>
+      for {
         _ <- repo.put(signedTransaction)
         trEither <- repo.get(transactionHash)
-        _ <- repo.close()
       } yield {
-        assertMatch(trEither){ case Right(tr) if tr === signedTransaction => }
-      }).toFuture
+        assert(trEither === Right(signedTransaction))
+      }
     }
 
-    test("removeWithHash") {
-      val repo = newRepo
-      (for {
+    test("removeWithHash") - withNewRepo { repo =>
+      for {
         _ <- repo.put(signedTransaction)
         _ <- repo.removeWithHash(transactionHash)
         result <- repo.get(transactionHash)
-        _ <- repo.close()
       } yield {
         assertMatch(result){ case Left(_) => }
-      }).toFuture
+      }
     }
 
-    test("remove") {
-      val repo = newRepo
-      (for {
+    test("remove") - withNewRepo { repo =>
+      for {
         _ <- repo.put(signedTransaction)
         _ <- repo.remove(signedTransaction)
         result <- repo.get(transactionHash)
-        _ <- repo.close()
       } yield {
         assertMatch(result){ case Left(_) => }
-      }).toFuture
+      }
     }
   }
 }
