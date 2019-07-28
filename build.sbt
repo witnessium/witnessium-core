@@ -16,6 +16,7 @@ lazy val scribeVersion = "2.7.6"
 lazy val acyclicVersion = "0.2.0"
 lazy val silencerVersion = "1.4.1"
 lazy val splainVersion = "0.4.1"
+lazy val kindProjectorVersion = "0.10.3"
 
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
@@ -28,6 +29,9 @@ lazy val sharedSettings = Seq(
   addCompilerPlugin("com.lihaoyi" %% "acyclic" % acyclicVersion),
   addCompilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
   addCompilerPlugin("io.tryp" %% "splain" % splainVersion cross CrossVersion.patch),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion),
+
+  resolvers += Resolver.sonatypeRepo("releases"),
 
   cancelable in Global := true,
 
