@@ -50,4 +50,5 @@ trait CirceCodec {
   } yield refined)
 
   implicit val circeUInt256BytesKeyEncoder: KeyEncoder[UInt256Bytes] = KeyEncoder.instance(_.toBytes.toBase64)
+
 }

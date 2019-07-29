@@ -7,7 +7,6 @@ import io.circe.refined._
 import org.scalacheck.{Arbitrary, Prop}
 import org.scalacheck.Prop.forAll
 import datatype.{UInt256BigInt, UInt256Bytes}
-//import datatype.{MerkleTrieNode, UInt256Refine}
 import model._
 
 import test.UTestScalaCheck

@@ -4,7 +4,7 @@ lazy val twitterVersion = "19.6.0"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
 lazy val scalatagsVersion = "0.6.8"
-lazy val refinedVersion = "0.9.8"
+lazy val refinedVersion = "0.9.9"
 lazy val swaydbVersion = "0.8-beta.8"
 lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
@@ -115,6 +115,7 @@ lazy val sharedSettings = Seq(
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.outr" %%% "scribe" % scribeVersion,
     "eu.timepit" %%% "refined" % refinedVersion,
+    "eu.timepit" %% "refined-cats" % refinedVersion,
     "eu.timepit" %%% "refined-scodec" % refinedVersion,
     "com.lihaoyi" %%% "utest" % utestVersion % Test,
     "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,

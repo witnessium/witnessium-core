@@ -11,7 +11,7 @@ import scodec.bits.{BitVector, ByteVector}
 import shapeless.nat._16
 import shapeless.syntax.sized._
 
-import datatype.{BigNat, MerkleTrieNode, UInt256Refine}
+import datatype.{BigNat, MerkleTrieNode, UInt256BigInt, UInt256Bytes, UInt256Refine}
 import util.refined.bitVector._
 
 trait ModelArbitrary {
@@ -20,11 +20,11 @@ trait ModelArbitrary {
     bigint <- Arbitrary.arbitrary[BigInt]
   } yield refineV[NonNegative](bigint.abs).toOption.get)
 
-  implicit val arbitraryUInt256BigInt: Arbitrary[UInt256Refine.UInt256BigInt] = Arbitrary(for{
+  implicit val arbitraryUInt256BigInt: Arbitrary[UInt256BigInt] = Arbitrary(for{
     bytes <- Gen.containerOfN[Array, Byte](32, Arbitrary.arbitrary[Byte])
   } yield UInt256Refine.from(BigInt(1, bytes)).toOption.get)
 
-  implicit val arbitraryUInt256Bytes: Arbitrary[UInt256Refine.UInt256Bytes] = Arbitrary(for {
+  implicit val arbitraryUInt256Bytes: Arbitrary[UInt256Bytes] = Arbitrary(for {
     bytes <- Gen.containerOfN[Array, Byte](32, Arbitrary.arbitrary[Byte])
   } yield UInt256Refine.from(ByteVector.view(bytes)).toOption.get)
 
@@ -66,7 +66,7 @@ trait ModelArbitrary {
   } yield Signed(a, sig))
 
   implicit val arbitraryState: Arbitrary[State] = Arbitrary(for {
-    unused <- arbitrarySet[(Address, UInt256Refine.UInt256Bytes)].arbitrary
+    unused <- arbitrarySet[(Address, UInt256Bytes)].arbitrary
     transactions <- arbitrarySet[Transaction].arbitrary
   } yield State(unused, transactions))
 
@@ -80,7 +80,7 @@ trait ModelArbitrary {
 
   implicit val arbitraryBlock: Arbitrary[Block] = Arbitrary(for {
     heder <- arbitraryBlockHeader.arbitrary
-    transactionHashes <- arbitrarySet[UInt256Refine.UInt256Bytes].arbitrary
+    transactionHashes <- arbitrarySet[UInt256Bytes].arbitrary
     numberOfVotes <- Gen.choose(1, 10)
     votes <- Gen.listOfN(numberOfVotes, arbitrarySignature.arbitrary)
   } yield Block(heder, transactionHashes, votes.toSet))
@@ -98,16 +98,22 @@ trait ModelArbitrary {
         MerkleTrieNode.Leaf(prefix, ByteVector.view(byteList.toArray))
       }
     } else {
-      Gen.containerOfN[Vector, UInt256Refine.UInt256Bytes](16, arbitraryUInt256Bytes.arbitrary).map {
+      Gen.containerOfN[Vector, UInt256Bytes](16, arbitraryUInt256Bytes.arbitrary).map {
         unsizedChildren => MerkleTrieNode.Branch(prefix, unsizedChildren.sized(_16).get)
       }
     }
   } yield node)
 
   implicit val arbitraryGossipMessage: Arbitrary[GossipMessage] = {
-    def blockVotesArbitrary(blockSuggestionsSize: Int): Arbitrary[Map[UInt256Refine.UInt256Bytes, Set[Signature]]] = {
 
-      val blockVoteArbitrary: Arbitrary[(UInt256Refine.UInt256Bytes, Set[Signature])] = Arbitrary(for {
+    val blockSuggestionsArbitrary: Arbitrary[(BlockHeader, Set[UInt256Bytes])] = Arbitrary(for {
+      header <- arbitraryBlockHeader.arbitrary
+      transactionHashes <- arbitrarySet[UInt256Bytes].arbitrary
+    } yield header -> transactionHashes)
+
+    def blockVotesArbitrary(blockSuggestionsSize: Int): Arbitrary[Map[UInt256Bytes, Set[Signature]]] = {
+
+      val blockVoteArbitrary: Arbitrary[(UInt256Bytes, Set[Signature])] = Arbitrary(for {
         hash <- arbitraryUInt256Bytes.arbitrary
         numberOfSig <- Gen.choose(0, 4)
         sigs <- Gen.listOfN(numberOfSig, arbitrarySignature.arbitrary)
@@ -120,7 +126,7 @@ trait ModelArbitrary {
 
     Arbitrary(for {
       blockSuggestionsSize <- Gen.choose(0, 4)
-      blockSuggestionList <- Gen.listOfN(blockSuggestionsSize, arbitraryBlock.arbitrary)
+      blockSuggestionList <- Gen.listOfN(blockSuggestionsSize, blockSuggestionsArbitrary.arbitrary)
       blockVotes <- blockVotesArbitrary(blockSuggestionsSize).arbitrary
       newTransactions <- arbitrarySet[Transaction].arbitrary
     } yield GossipMessage(blockSuggestionList.toSet, blockVotes, newTransactions))
