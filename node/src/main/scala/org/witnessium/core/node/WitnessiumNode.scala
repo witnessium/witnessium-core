@@ -25,7 +25,7 @@ import datatype.{BigNat, Confidential}
 import endpoint.{GossipEndpoint, JsFileEndpoint, TransactionEndpoint}
 import model.{Address, NetworkId}
 import service.{GossipService, TransactionService}
-import service.interpreter.GossipServiceInterpreter
+import service.interpreter.{GossipServiceInterpreter, TransactionServiceInterpreter}
 import util.ServingHtml
 import view.Index
 
@@ -58,7 +58,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
    ****************************************/
 
   val gossipService: GossipService[IO] = new GossipServiceInterpreter()
-  val transactionService: TransactionService[IO] = new TransactionService[IO]
+  val transactionService: TransactionService[IO] = new TransactionServiceInterpreter()
 
   /****************************************
    *  Setup Endpoints and API
