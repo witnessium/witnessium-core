@@ -8,8 +8,10 @@ import org.bouncycastle.crypto.params.ECDomainParameters
 import org.bouncycastle.math.ec.{ECAlgorithms, ECPoint}
 import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
 import org.bouncycastle.jcajce.provider.digest.Keccak
+import scodec.bits.ByteVector
 
-import datatype.UInt256BigInt
+import codec.byte.ByteEncoder
+import datatype.{UInt256BigInt, UInt256Bytes, UInt256Refine}
 import model.Signature
 
 package object crypto {
@@ -27,6 +29,13 @@ package object crypto {
     val kecc = new Keccak.Digest256()
     kecc.update(input, 0, input.length)
     kecc.digest
+  }
+
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+  def hash[A: ByteEncoder](a: A): UInt256Bytes = {
+    val bytes = ByteEncoder[A].encode(a)
+    val hash = ByteVector.view(crypto.keccak256(bytes.toArray))
+    UInt256Refine.from(hash).toOption.get
   }
 
   implicit class SignatureOps(val signature: Signature) extends AnyVal {

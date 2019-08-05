@@ -4,13 +4,10 @@ package repository
 package interpreter
 
 import scala.concurrent.Future
-import scodec.bits.ByteVector
 import swaydb.data.IO
 import swaydb.serializers.Default._
 
-import org.witnessium.core.codec.byte.ByteEncoder
-import datatype.UInt256Refine
-import model.{Block, BlockHeader}
+import model.Block
 
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.rng.Seed
@@ -21,14 +18,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
   val block = Arbitrary.arbitrary[Block].pureApply(Gen.Parameters.default, Seed.random())
 
-  val sigSet = (for {
-    numberOfSig <- Gen.choose(0, 4)
-    sigList <- Gen.listOfN(numberOfSig, arbitrarySignature.arbitrary)
-  } yield sigList.toSet).pureApply(Gen.Parameters.default, Seed.random())
-
-  val blockHash = UInt256Refine.from{
-    ByteVector.view(crypto.keccak256(ByteEncoder[BlockHeader].encode(block.header).toArray))
-  }.toOption.get
+  val blockHash = crypto.hash(block.header)
 
   def withNewRepo[A](testBody: BlockRepositoryInterpreter => IO[A]): Future[A] = {
 
@@ -57,7 +47,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("put and getHeader") - withNewRepo { repo =>
       for {
-        _ <- repo.put(block, sigSet)
+        _ <- repo.put(block)
         headerEither <- repo.getHeader(blockHash)
       } yield {
         assert(headerEither === Right(block.header))
@@ -66,7 +56,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("put and getTransactionHashes") - withNewRepo { repo =>
       for {
-        _ <- repo.put(block, sigSet)
+        _ <- repo.put(block)
         transactionHashesEither <- repo.getTransactionHashes(blockHash)
       } yield {
         assert(transactionHashesEither === Right(block.transactionHashes.toList))
@@ -75,10 +65,10 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("put and getSignatures") - withNewRepo { repo =>
       for {
-        _ <- repo.put(block, sigSet)
+        _ <- repo.put(block)
         sigsEither <- repo.getSignatures(blockHash)
       } yield {
-        assert(sigsEither === Right(sigSet.toList))
+        assert(sigsEither === Right(block.votes.toList))
       }
     }
   }

@@ -8,4 +8,5 @@ final case class NodeStatus(
   genesisHash: UInt256Bytes,
   bestHash: UInt256Bytes,
   number: BigNat,
+  blockProviding: BigNat,
 )

@@ -24,8 +24,8 @@ import codec.circe._
 import datatype.{BigNat, Confidential}
 import endpoint.{GossipEndpoint, JsFileEndpoint, TransactionEndpoint}
 import model.{Address, NetworkId}
-import service.{GossipService, TransactionService}
-import service.interpreter.{GossipServiceInterpreter, TransactionServiceInterpreter}
+import service.{LocalGossipService, TransactionService}
+import service.interpreter.{LocalGossipServiceInterpreter, TransactionServiceInterpreter}
 import util.ServingHtml
 import view.Index
 
@@ -42,7 +42,6 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
 
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, SnakeCase))
 
-  @SuppressWarnings(Array("org.wartremover.warts.Nothing"))
   val configEither: Either[ConfigReaderFailures, Config] = pureconfig.loadConfig[Config]
   scribe.info(s"load config: $configEither")
 
@@ -57,17 +56,16 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
    *  Setup Services
    ****************************************/
 
-  val gossipService: GossipService[IO] = new GossipServiceInterpreter()
+  val localGossipService: LocalGossipService[IO] = new LocalGossipServiceInterpreter()
   val transactionService: TransactionService[IO] = new TransactionServiceInterpreter()
 
   /****************************************
    *  Setup Endpoints and API
    ****************************************/
 
-  val gossipEndpoint: GossipEndpoint = new GossipEndpoint(gossipService)
+  val gossipEndpoint: GossipEndpoint = new GossipEndpoint(localGossipService)
   val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(transactionService)
 
-  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
 
   val javascriptEndpoint: Endpoint[IO, Buf] = new JsFileEndpoint().Get
@@ -86,7 +84,6 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
     allowsHeaders = _ => Some(Seq("Accept"))
   )
 
-  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   lazy val api: Service[Request, Response] = new Cors.HttpFilter(policy).andThen(Bootstrap
     .serve[Text.Html](htmlEndpoint)
     .serve[Application.Javascript](javascriptEndpoint)

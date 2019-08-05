@@ -16,7 +16,6 @@ import service.TransactionService
 
 class TransactionEndpoint(transactionService: TransactionService[IO]) {
 
-  @SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Nothing"))
   val Post: Endpoint[IO, UInt256Refine.UInt256Bytes] = post("transaction"::jsonBody[Transaction]) { (t: Transaction) =>
     transactionService.submit(t).map{
       case Left(msg) => BadRequest(new Exception(msg))

@@ -16,12 +16,4 @@ class BlockchainCoreNodeService[F[_]: Monad](
     peerConnectionService.listen(nodeStateUpdateService.onGossip)
     transactionService.listen(nodeStateUpdateService.onGossip)
   }
-
-  def stop: F[Unit] = for {
-    _ <- nodeInitializationService.stop()
-    _ <- blockSuggentionService.stop()
-    _ <- peerConnectionService.stop()
-    _ <- transactionService.stop()
-    _ <- nodeStateUpdateService.stop()
-  } yield ()
 }

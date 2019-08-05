@@ -25,7 +25,7 @@ class GossipRepositoryInterpreter(
     swayBlockSuggestionMap
       .map(_._2)
       .materialize
-      .map(_.toList.traverse[Either[String, ?], BlockSuggestion]{ byteArray =>
+      .map(_.toList.traverse[Either[String, *], BlockSuggestion]{ byteArray =>
         val byteVector = ByteVector.view(byteArray)
         ByteDecoder[BlockSuggestion].decode(byteVector).filterOrElse(
           _.remainder.isEmpty,
@@ -36,7 +36,7 @@ class GossipRepositoryInterpreter(
 
   def blockSuggestion(blockHash: UInt256Bytes): IO[Either[String, Option[BlockSuggestion]]] = {
     swayBlockVoteMap.get(blockHash.toArray).map{ byteArrayOption =>
-      byteArrayOption.traverse[Either[String, ?], BlockSuggestion]{ byteArray =>
+      byteArrayOption.traverse[Either[String, *], BlockSuggestion]{ byteArray =>
         val byteVector = ByteVector.view(byteArray)
         ByteDecoder[BlockSuggestion].decode(byteVector).filterOrElse(
           _.remainder.isEmpty,
@@ -62,7 +62,7 @@ class GossipRepositoryInterpreter(
     swayNewTransactionMap
       .map(_._2)
       .materialize
-      .map(_.toList.traverse[Either[String, ?], Transaction.Signed]{ byteArray =>
+      .map(_.toList.traverse[Either[String, *], Transaction.Signed]{ byteArray =>
         val byteVector = ByteVector.view(byteArray)
         ByteDecoder[Transaction.Signed].decode(byteVector).filterOrElse(
           _.remainder.isEmpty,
@@ -73,7 +73,7 @@ class GossipRepositoryInterpreter(
 
   def newTransaction(transactionHash: UInt256Bytes): IO[Either[String, Option[Transaction.Signed]]] = {
     swayNewTransactionMap.get(transactionHash.toBytes.toArray).map{ byteArrayOption =>
-      byteArrayOption.traverse[Either[String, ?], Transaction.Signed]{ byteArray =>
+      byteArrayOption.traverse[Either[String, *], Transaction.Signed]{ byteArray =>
         val byteVector = ByteVector.view(byteArray)
         ByteDecoder[Transaction.Signed].decode(byteVector).filterOrElse(
           _.remainder.isEmpty,

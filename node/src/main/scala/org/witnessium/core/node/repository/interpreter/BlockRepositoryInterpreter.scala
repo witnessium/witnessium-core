@@ -44,7 +44,7 @@ class BlockRepositoryInterpreter(
     }
   }
 
-  def put(block: Block, signatures: Set[Signature]): IO[Unit] = {
+  def put(block: Block): IO[Unit] = {
     val blockHeaderArray = ByteEncoder[BlockHeader].encode(block.header).toArray
     val blockHash = crypto.keccak256(blockHeaderArray)
     for {
@@ -52,7 +52,7 @@ class BlockRepositoryInterpreter(
       _ <- swayTransactionsMap.put(blockHash,
         ByteEncoder[List[UInt256Bytes]].encode(block.transactionHashes.toList).toArray)
       _ <- swaySignaturesMap.put(blockHash,
-        ByteEncoder[List[Signature]].encode(signatures.toList).toArray)
+        ByteEncoder[List[Signature]].encode(block.votes.toList).toArray)
     } yield ()
   }
 

@@ -137,5 +137,6 @@ trait ModelArbitrary {
     genesisHash <- arbitraryUInt256Bytes.arbitrary
     bestHash <- arbitraryUInt256Bytes.arbitrary
     number <- arbitraryBigNat.arbitrary
-  } yield NodeStatus(networkId, genesisHash, bestHash, number))
+    blockProviding <- arbitraryBigNat.arbitrary
+  } yield NodeStatus(networkId, genesisHash, bestHash, number, blockProviding))
 }

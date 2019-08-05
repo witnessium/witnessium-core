@@ -6,7 +6,6 @@ import scalajs.js.Dynamic.literal
 
 @JSExportTopLevel("WitnessiumCoreJs")
 object WitnessiumCoreJs {
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   @JSExport
   def main(): Vue = new Vue(literal(
     el = "#app",

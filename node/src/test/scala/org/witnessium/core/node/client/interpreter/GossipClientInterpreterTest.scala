@@ -12,26 +12,18 @@ import eu.timepit.refined.refineV
 import io.circe.generic.auto._
 import io.circe.refined._
 import io.finch.circe._
-import scodec.bits.ByteVector
-import codec.byte.ByteEncoder
 import codec.circe._
-import datatype.{UInt256Bytes, UInt256Refine}
+import datatype.UInt256Bytes
 import endpoint._
 import model.{Block, GossipMessage, ModelArbitrary, NodeStatus, State, Transaction}
 import p2p.BloomFilter
-import service.GossipService
+import service.LocalGossipService
 
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.rng.Seed
 import utest._
 
 object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
-
-  private def hash[A: ByteEncoder](a: A): UInt256Bytes = {
-    val bytes = ByteEncoder[A].encode(a)
-    val hash = ByteVector.view(crypto.keccak256(bytes.toArray))
-    UInt256Refine.from(hash).toOption.get
-  }
 
   val seed = Seed.random()
 
@@ -42,17 +34,17 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
     transactions <- Gen.listOfN(count, arbitrarySigned[Transaction].arbitrary)
   } yield transactions).arbitrary.pureApply(Gen.Parameters.default, seed)
 
-  val sampleTransactionHashes = sampleTransactions.map{ signedTransaction => hash(signedTransaction.value) }
+  val sampleTransactionHashes = sampleTransactions.map{ signedTransaction => crypto.hash(signedTransaction.value) }
 
   val sampleState = arbitraryState.arbitrary.pureApply(Gen.Parameters.default, seed)
 
-  val sampleStateRoot = hash(sampleState)
+  val sampleStateRoot = crypto.hash(sampleState)
 
   val sampleBlock = arbitraryBlock.arbitrary.pureApply(Gen.Parameters.default, seed)
 
-  val sampleBlockHash = hash(sampleBlock.header)
+  val sampleBlockHash = crypto.hash(sampleBlock.header)
 
-  val endpoint = new GossipEndpoint(new GossipService[IO] {
+  val endpoint = new GossipEndpoint(new LocalGossipService[IO] {
     def status: IO[Either[String, NodeStatus]] = {
       IO.pure(Right(sampleNodeStatus))
     }
@@ -68,19 +60,13 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
       ))
     }
 
-    def state(stateRoot: UInt256Bytes): IO[Either[String, State]] = IO.pure{
-      Either.cond(stateRoot === sampleStateRoot,
-        sampleState,
-        s"Not Found: $stateRoot"
-      )
-    }
+    def state(stateRoot: UInt256Bytes): IO[Either[String, Option[State]]] = IO.pure(Right(
+      if (stateRoot === sampleStateRoot) Some(sampleState) else None
+    ))
 
-    def block(blockHash: UInt256Bytes): IO[Either[String, Block]] = IO.pure{
-      Either.cond(blockHash === sampleBlockHash,
-        sampleBlock,
-        s"Not Found: $blockHash"
-      )
-    }
+    def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = IO.pure(Right(
+      if (blockHash === sampleBlockHash) Some(sampleBlock) else None
+    ))
   })
 
   val service = (endpoint.Status

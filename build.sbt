@@ -17,6 +17,7 @@ lazy val acyclicVersion = "0.2.0"
 lazy val silencerVersion = "1.4.1"
 lazy val splainVersion = "0.4.1"
 lazy val kindProjectorVersion = "0.10.3"
+lazy val betterMonadicForVersion = "0.3.0"
 
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
@@ -30,6 +31,7 @@ lazy val sharedSettings = Seq(
   addCompilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
   addCompilerPlugin("io.tryp" %% "splain" % splainVersion cross CrossVersion.patch),
   addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion),
+  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % betterMonadicForVersion),
 
   resolvers += Resolver.sonatypeRepo("releases"),
 
@@ -103,7 +105,7 @@ lazy val sharedSettings = Seq(
   },
 
   // wartremover
-  wartremoverWarnings in (Compile, compile) ++= Warts.all,
+  wartremoverWarnings in (Compile, compile) ++= Warts.allBut(Wart.Any, Wart.Nothing),
 
   testFrameworks += new TestFramework("utest.runner.Framework"),
 
@@ -139,6 +141,7 @@ lazy val node = (project in file("node"))
       "com.twitter" %% "twitter-server" % twitterVersion,
       "com.twitter" %% "finagle-stats"  % twitterVersion,
       "io.catbird" %% "catbird-effect" % twitterVersion,
+      "io.catbird" %% "catbird-util" % twitterVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
       "io.swaydb" %% "swaydb" % swaydbVersion,
       "com.outr" %% "scribe-slf4j18" % scribeVersion,
