@@ -39,7 +39,7 @@ class GenesisBlockSetupServiceInterpreter(
 
     val state = State(
       unused = initialDistribution.mapValues(_ => transactionHash).toSet,
-      transactions = Set(transaction),
+      transactions = Set(Genesis(transaction)),
     )
 
     val genesisBlockHeader: BlockHeader = BlockHeader(

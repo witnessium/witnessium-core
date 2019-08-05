@@ -72,7 +72,7 @@ trait ModelArbitrary {
 
   implicit val arbitraryState: Arbitrary[State] = Arbitrary(for {
     unused <- arbitrarySet[(Address, UInt256Bytes)].arbitrary
-    transactions <- arbitrarySet[Transaction].arbitrary
+    transactions <- arbitrarySet[Transaction.Verifiable].arbitrary
   } yield State(unused, transactions))
 
   implicit val arbitraryBlockHeader: Arbitrary[BlockHeader] = Arbitrary(for {
