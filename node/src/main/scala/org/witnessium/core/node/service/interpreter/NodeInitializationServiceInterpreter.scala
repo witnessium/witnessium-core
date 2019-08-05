@@ -3,12 +3,12 @@ package node
 package service
 package interpreter
 
-import cats.data.EitherT
+import cats.data.{EitherT, OptionT}
 import cats.effect.IO
 import cats.implicits._
 import com.twitter.util.Future
 import swaydb.data.{IO => SwayIO}
-import datatype.UInt256Bytes
+import model.Block
 import repository.{BlockRepository, StateRepository}
 import util.SwayIOCats._
 
@@ -22,27 +22,25 @@ class NodeInitializationServiceInterpreter(
   override def initialize: IO[Either[String, Unit]] = {
     for {
       localStatus <- EitherT(localGossipService.status.toIO)
-      stateAndBlockHeaderOption <- EitherT(peerConnectionService.bestStateAndBlockHeader(localStatus).toIO)
-      (state, blockHeader) <- EitherT.fromOption[IO](stateAndBlockHeaderOption, "Already synchronized with peers")
+      stateAndBlockOption <- EitherT(peerConnectionService.bestStateAndBlock(localStatus).toIO)
+      (state, block) <- EitherT.fromOption[IO](stateAndBlockOption, "Already synchronized with peers")
       _ <- EitherT.right[String](state.unused.toList.traverse{
         case (address, txHash) => stateRepository.put(address, txHash)
       }.toIO)
-      _ <- EitherT(loop(crypto.hash(blockHeader)))
+      _ <- EitherT(loop(block))
     } yield ()
   }.value
 
   @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
-  def loop(currentBlockHash: UInt256Bytes): IO[Either[String, Unit]] = IO.suspend{
-    (for {
-      blockOption <- EitherT(localGossipService.block(currentBlockHash).toIO)
-      block <- blockOption.map(EitherT.pure[IO, String](_)).getOrElse(
-        EitherT(peerConnectionService.block(currentBlockHash).toIO)
-      )
-    } yield block).flatMap {
-      case block if block.header.number.value === BigInt(0) => EitherT.rightT[IO, String](())
-      case block => EitherT(
-        blockRepository.put(block).toIO *> IO.cancelBoundary *> loop(block.header.parentHash)
-      )
-    }.value
+  def loop(currentBlock: Block): IO[Either[String, Unit]] = IO.suspend{
+    if (currentBlock.header.number.value === BigInt(0)) EitherT.rightT[IO, String](()).value else {
+      blockRepository.put(currentBlock).toIO *> IO.cancelBoundary *> (for {
+        localBlockOption <- EitherT(localGossipService.block(currentBlock.header.parentHash).toIO)
+        block <- EitherT.fromOptionF(OptionT.fromOption[IO](localBlockOption).orElse(
+          OptionT(peerConnectionService.block(currentBlock.header.parentHash).toIO)
+        ).value, s"Parent block not found: $currentBlock")
+        _ <- EitherT(loop(block))
+      } yield ()).value
+    }
   }
 }

@@ -3,10 +3,11 @@ package node
 package service
 
 import datatype.UInt256Bytes
-import model.{Block, BlockHeader, NodeStatus, State}
+import model.{Block, GossipMessage, NodeStatus, State}
+import p2p.BloomFilter
 
-trait PeerConnectionService[F[_]] extends GossipMessagePublisher[F] {
-  def bestStateAndBlockHeader(localStatus: NodeStatus): F[Either[String, Option[(State, BlockHeader)]]]
-  def block(blockHash: UInt256Bytes): F[Either[String, Block]]
-  def stop(): F[Unit]
+trait PeerConnectionService[F[_]] {
+  def bestStateAndBlock(localStatus: NodeStatus): F[Either[String, Option[(State, Block)]]]
+  def block(blockHash: UInt256Bytes): F[Option[Block]]
+  def gossip(bloomFilter: BloomFilter): F[Either[String, GossipMessage]]
 }

@@ -125,13 +125,13 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
     test("state") - withTestServerAndClient{ client =>
       for {
         response <- client.state(sampleStateRoot)
-      } yield assert(response === Right(sampleState))
+      } yield assert(response === Right(Some(sampleState)))
     }
 
     test("block") - withTestServerAndClient{ client =>
       for {
         response <- client.block(sampleBlockHash)
-      } yield assert(response === Right(sampleBlock))
+      } yield assert(response === Right(Some(sampleBlock)))
     }
   }
 }

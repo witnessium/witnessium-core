@@ -1,9 +1,9 @@
 package org.witnessium.core
 package node.service
 
+import cats.effect.IO
 import model.GossipMessage
 
-trait GossipMessagePublisher[F[_]] {
-  def listen(listener: GossipMessage => F[Unit]): Unit
-  def stop(): F[Unit]
+trait GossipMessagePublisher {
+  def listen(listener: GossipMessage => IO[Unit]): Unit
 }

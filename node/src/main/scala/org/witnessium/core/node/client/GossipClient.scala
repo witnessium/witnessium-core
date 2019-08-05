@@ -14,9 +14,9 @@ trait GossipClient[F[_]] {
 
   def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): F[Either[String, Seq[Transaction.Signed]]]
 
-  def state(stateRoot: UInt256Bytes): F[Either[String, State]]
+  def state(stateRoot: UInt256Bytes): F[Either[String, Option[State]]]
 
-  def block(blockHash: UInt256Bytes): F[Either[String, Block]]
+  def block(blockHash: UInt256Bytes): F[Either[String, Option[Block]]]
 
   def close(): F[Unit]
 }

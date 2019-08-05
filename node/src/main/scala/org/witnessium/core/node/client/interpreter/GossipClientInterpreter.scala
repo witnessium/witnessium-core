@@ -3,6 +3,8 @@ package node
 package client
 package interpreter
 
+import cats.data.OptionT
+import cats.implicits._
 import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.{Method, Request, Response}
 import com.twitter.util.Future
@@ -60,29 +62,33 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
     }
   }
 
-  def state(stateRoot: UInt256Bytes): Future[Either[String, State]] = {
+  def state(stateRoot: UInt256Bytes): Future[Either[String, Option[State]]] = {
     val request = Request(s"${ApiPath.gossip.state.toUrl}/${stateRoot.toHex}")
     scribe.info(s"Gossip state request: $request")
 
     for (response <- client(request)) yield {
       scribe.info(s"Gossip state response: $response")
       scribe.debug(s"Gossip state response body: ${response.contentString}")
-      parser.decode[State](response.contentString).left.map{ _ =>
-        s"$response: ${response.contentString}"
-      }
+      if (response.statusCode === 404) Right(None) else OptionT.liftF{
+        parser.decode[State](response.contentString).left.map{ _ =>
+          s"$response: ${response.contentString}"
+        }
+      }.value
     }
   }
 
-  def block(blockHash: UInt256Bytes): Future[Either[String, Block]] = {
+  def block(blockHash: UInt256Bytes): Future[Either[String, Option[Block]]] = {
     val request = Request(s"${ApiPath.gossip.block.toUrl}/${blockHash.toHex}")
     scribe.info(s"Gossip block request: $request")
 
     for (response <- client(request)) yield {
       scribe.info(s"Gossip block response: $response")
       scribe.debug(s"Gossip block response body: ${response.contentString}")
-      parser.decode[Block](response.contentString).left.map{ _ =>
-        s"$response: ${response.contentString}"
-      }
+      if (response.statusCode === 404) Right(None) else OptionT.liftF{
+        parser.decode[Block](response.contentString).left.map{ _ =>
+          s"$response: ${response.contentString}"
+        }
+      }.value
     }
   }
 
