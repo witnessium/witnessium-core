@@ -12,7 +12,7 @@ import shapeless.{::, Generic, HList, HNil, Lazy}
 
 import datatype.{BigNat, MerkleTrieNode, UInt256Refined, UInt256Refine}
 import UInt256Refine.UInt256RefineOps
-import model.{Address, Signature}
+import model.{Address, Genesis, Signature, Signed, Verifiable}
 
 trait ByteEncoder[A] {
   def encode(a: A): ByteVector
@@ -52,6 +52,11 @@ object ByteEncoder {
   private def nat(bigint: BigInt): BigNat = refineV[NonNegative](bigint) match {
     case Right(bignat) => bignat
     case Left(msg) => throw new Exception(msg)
+  }
+
+  implicit def verifiableEncoder[A: ByteEncoder]: ByteEncoder[Verifiable[A]] = {
+    case signed: Signed[A] => ByteEncoder[Signed[A]].encode(signed)
+    case Genesis(value) => 64.toByte +: ByteEncoder[A].encode(value)
   }
 
   implicit def listEncoder[A: ByteEncoder]: ByteEncoder[List[A]] = { list =>

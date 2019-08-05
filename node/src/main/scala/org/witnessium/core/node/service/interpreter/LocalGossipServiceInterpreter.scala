@@ -36,7 +36,7 @@ class LocalGossipServiceInterpreter extends LocalGossipService[IO] {
 
   override def unknownTransactions(
     transactionHashes: Seq[UInt256Bytes]
-  ): IO[Either[String, Seq[Transaction.Signed]]] = ???
+  ): IO[Either[String, Seq[Transaction.Verifiable]]] = ???
 
   override def state(stateRoot: UInt256Bytes): IO[Either[String, Option[State]]] = ???
 

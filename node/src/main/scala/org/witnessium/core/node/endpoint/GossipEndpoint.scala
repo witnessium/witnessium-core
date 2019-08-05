@@ -35,8 +35,8 @@ class GossipEndpoint(localGossipService: LocalGossipService[IO]) {
     }
   }
 
-  val UnknownTransactions: Endpoint[IO, Seq[Transaction.Signed]] = post(ApiPath.gossip.unknownTransactions.toEndpoint ::
-    jsonBody[List[UInt256Bytes]]
+  val UnknownTransactions: Endpoint[IO, Seq[Transaction.Verifiable]] = post(
+    ApiPath.gossip.unknownTransactions.toEndpoint :: jsonBody[List[UInt256Bytes]]
   ) { (transactionHashes: List[UInt256Bytes]) =>
     scribe.info(s"Receive gossip unknown transactions request: $transactionHashes")
     localGossipService.unknownTransactions(transactionHashes).map {

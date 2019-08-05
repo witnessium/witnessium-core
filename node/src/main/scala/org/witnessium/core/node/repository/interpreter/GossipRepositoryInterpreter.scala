@@ -58,24 +58,24 @@ class GossipRepositoryInterpreter(
     }
   }
 
-  def newTransactions(bloomFilter: BloomFilter): IO[Either[String, Set[Transaction.Signed]]] = {
+  def newTransactions(bloomFilter: BloomFilter): IO[Either[String, Set[Transaction.Verifiable]]] = {
     swayNewTransactionMap
       .map(_._2)
       .materialize
-      .map(_.toList.traverse[Either[String, *], Transaction.Signed]{ byteArray =>
+      .map(_.toList.traverse[Either[String, *], Transaction.Verifiable]{ byteArray =>
         val byteVector = ByteVector.view(byteArray)
-        ByteDecoder[Transaction.Signed].decode(byteVector).filterOrElse(
+        ByteDecoder[Transaction.Verifiable].decode(byteVector).filterOrElse(
           _.remainder.isEmpty,
           s"Non empty bytes after decoding new transaction: $byteVector"
         ).map(_.value)
       }.map(_.toSet))
   }
 
-  def newTransaction(transactionHash: UInt256Bytes): IO[Either[String, Option[Transaction.Signed]]] = {
+  def newTransaction(transactionHash: UInt256Bytes): IO[Either[String, Option[Transaction.Verifiable]]] = {
     swayNewTransactionMap.get(transactionHash.toBytes.toArray).map{ byteArrayOption =>
-      byteArrayOption.traverse[Either[String, *], Transaction.Signed]{ byteArray =>
+      byteArrayOption.traverse[Either[String, *], Transaction.Verifiable]{ byteArray =>
         val byteVector = ByteVector.view(byteArray)
-        ByteDecoder[Transaction.Signed].decode(byteVector).filterOrElse(
+        ByteDecoder[Transaction.Verifiable].decode(byteVector).filterOrElse(
           _.remainder.isEmpty,
           s"Non empty bytes after decoding block votes: $byteVector"
         ).map(_.value)
@@ -91,8 +91,8 @@ class GossipRepositoryInterpreter(
     swayBlockSuggestionMap.put(hash, (headerBytes ++ transactionHashesBytes).toArray).map(_ => ())
   }
 
-  def putNewTransaction(transaction: Transaction.Signed): IO[Unit] = {
-    val transactionBytes = ByteEncoder[Transaction.Signed].encode(transaction)
+  def putNewTransaction(transaction: Transaction.Verifiable): IO[Unit] = {
+    val transactionBytes = ByteEncoder[Transaction.Verifiable].encode(transaction)
     val hash = crypto.keccak256(transactionBytes.toArray)
 
     swayNewTransactionMap.put(hash, transactionBytes.toArray).map(_ => ())

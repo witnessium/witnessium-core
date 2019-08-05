@@ -10,5 +10,5 @@ final case class Transaction(
 )
 
 object Transaction {
-  type Signed = model.Signed[Transaction]
+  type Verifiable = model.Verifiable[Transaction]
 }

@@ -1,6 +1,7 @@
 package org.witnessium.core
 package node
 
+import java.time.Instant
 import cats.effect.IO
 import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.filter.Cors
@@ -37,7 +38,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
 
   final case class NodeConfig(networkId: NetworkId, port: Port, privateKey: Confidential[String])
   final case class PeerConfig(hostname: String, port: Int, publicKey: String)
-  final case class GenesisConfig(initialDistribution: Map[Address, BigNat])
+  final case class GenesisConfig(initialDistribution: Map[Address, BigNat], createdAt: Instant)
   final case class Config(node: NodeConfig, peers: List[PeerConfig], genesis: GenesisConfig)
 
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, SnakeCase))

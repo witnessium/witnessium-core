@@ -10,10 +10,7 @@ import scodec.bits.ByteVector
 import swaydb.data.IO
 import swaydb.serializers.Default._
 
-import org.witnessium.core.codec.byte.ByteEncoder
-import crypto.keccak256
 import crypto.KeyPair
-import datatype.UInt256Refine
 import model.{Address, Signed, Transaction}
 
 import utest._
@@ -31,9 +28,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
     outputs = Set((targetAddress, targetAmount)),
   )
 
-  val transactionHash = UInt256Refine.from{
-    ByteVector.view(keccak256(ByteEncoder[Transaction].encode(transaction).toArray))
-  }.toOption.get
+  val transactionHash = crypto.hash(transaction)
 
   val signature = keyPair.sign(transactionHash.toArray).toOption.get
 

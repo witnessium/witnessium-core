@@ -44,8 +44,8 @@ object CirceCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary
       successfulRoundTrip[Signature].checkUTest()
     }
 
-    test("Signed Transaction"){
-      successfulRoundTrip[Transaction.Signed].checkUTest()
+    test("Verifiable Transaction"){
+      successfulRoundTrip[Transaction.Verifiable].checkUTest()
     }
 
     test("State"){

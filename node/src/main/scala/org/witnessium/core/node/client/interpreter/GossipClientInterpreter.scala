@@ -47,7 +47,7 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
     }
   }
 
-  def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): Future[Either[String, Seq[Transaction.Signed]]] = {
+  def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): Future[Either[String, Seq[Transaction.Verifiable]]] = {
     val request = Request(Method.Post, ApiPath.gossip.unknownTransactions.toUrl)
     request.setContentString(transactionHashes.asJson.toString)
     request.setContentTypeJson()
@@ -56,7 +56,7 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
     for (response <- client(request)) yield {
       scribe.info(s"Gossip unknownTransactions response: $response")
       scribe.debug(s"Gossip unknownTransactions response body: ${response.contentString}")
-      parser.decode[Seq[Transaction.Signed]](response.contentString).left.map{ _ =>
+      parser.decode[Seq[Transaction.Verifiable]](response.contentString).left.map{ _ =>
         s"$response: ${response.contentString}"
       }
     }

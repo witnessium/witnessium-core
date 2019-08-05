@@ -1,5 +1,7 @@
 package org.witnessium.core
 
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 import cats.effect.IO
 import eu.timepit.refined.W
 import eu.timepit.refined.api.Refined
@@ -7,7 +9,7 @@ import eu.timepit.refined.numeric.Interval
 import eu.timepit.refined.pureconfig._
 import io.finch.ToAsync
 
-import pureconfig.ConfigReader
+import pureconfig.{ConfigConvert, ConfigReader}
 import pureconfig.error.CannotConvert
 import scalatags.Text.TypedTag
 
@@ -26,5 +28,12 @@ package object node extends util.AsyncConvert {
 
   implicit class AsyncOps[F[_], A](val a: F[A]) extends AnyVal {
     def toIO(implicit toAsync: ToAsync[F, IO]): IO[A] = toAsync(a)
+  }
+
+  implicit val instantConvert: ConfigConvert[Instant] = {
+    ConfigConvert.viaNonEmptyString[Instant](
+      ConfigConvert.catchReadError(Instant.parse),
+      DateTimeFormatter.ISO_INSTANT.format
+    )
   }
 }

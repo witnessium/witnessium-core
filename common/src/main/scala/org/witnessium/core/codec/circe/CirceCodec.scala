@@ -2,11 +2,16 @@ package org.witnessium.core
 package codec.circe
 
 import java.time.Instant
+import cats.data.NonEmptyList
+import cats.syntax.functor._
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
+import io.circe.generic.auto._
+import io.circe.refined._
+import io.circe.syntax._
 import scodec.bits.{BitVector, ByteVector}
 
 import datatype.{UInt256BigInt, UInt256Bytes, UInt256Refine}
-import model.Address
+import model.{Address, Genesis, Signed, Verifiable}
 
 trait CirceCodec {
 
@@ -33,6 +38,16 @@ trait CirceCodec {
   }
 
   implicit def circeByteVectorEncoder[A <: ByteVector]: Encoder[A] = Encoder.encodeString.contramap[A](_.toBase64)
+
+  implicit def circeVerifiableDecoder[A : Decoder]: Decoder[Verifiable[A]] = NonEmptyList.of[Decoder[Verifiable[A]]](
+    Decoder[Signed[A]].widen,
+    Decoder[Genesis[A]].widen,
+  ).reduceLeft(_ or _)
+
+  implicit def circeVerifiableEncoder[A : Encoder]: Encoder[Verifiable[A]] = Encoder.instance {
+    case signed: Signed[A] => signed.asJson
+    case genesis: Genesis[A] => genesis.asJson
+  }
 
   implicit val circeInstantDecoder: Decoder[Instant] = Decoder.decodeLong.map(Instant.ofEpochMilli)
 

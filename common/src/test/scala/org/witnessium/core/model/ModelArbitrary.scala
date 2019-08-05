@@ -65,6 +65,11 @@ trait ModelArbitrary {
     sig <- arbitrarySignature.arbitrary
   } yield Signed(a, sig))
 
+  implicit def arbitraryVerifiable[A: Arbitrary]: Arbitrary[Verifiable[A]] = Arbitrary(Gen.frequency(
+    (1, Arbitrary.arbitrary[A].map(Genesis(_))),
+    (9, arbitrarySigned[A].arbitrary),
+  ))
+
   implicit val arbitraryState: Arbitrary[State] = Arbitrary(for {
     unused <- arbitrarySet[(Address, UInt256Bytes)].arbitrary
     transactions <- arbitrarySet[Transaction].arbitrary

@@ -15,7 +15,7 @@ import shapeless.ops.nat.ToInt
 import shapeless.syntax.sized._
 
 import datatype.{BigNat, MerkleTrieNode, UInt256BigInt, UInt256Bytes, UInt256Refine}
-import model.{Address, Signature}
+import model.{Address, Genesis, Signature, Signed, Verifiable}
 import util.refined.bitVector._
 
 trait ByteDecoder[A] {
@@ -39,7 +39,7 @@ trait ByteDecoder[A] {
   }
 }
 
-final case class DecodeResult[A](value: A, remainder: ByteVector)
+final case class DecodeResult[+A](value: A, remainder: ByteVector)
 
 object ByteDecoder {
 
@@ -98,6 +98,12 @@ object ByteDecoder {
         }
       }
     }
+  }
+
+  implicit def verifiableDecoder[A: ByteDecoder]: ByteDecoder[Verifiable[A]] = { bytes =>
+    val head: Int = bytes.head.toInt
+    if (head >= 64) ByteDecoder[A].map(Genesis(_)).decode(bytes.tail)
+    else ByteDecoder[Signed[A]].decode(bytes)
   }
 
   def sizedListDecoder[A: ByteDecoder](size: BigNat): ByteDecoder[List[A]] = { bytes =>

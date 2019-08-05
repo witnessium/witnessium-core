@@ -12,7 +12,7 @@ trait GossipClient[F[_]] {
 
   def bloomfilter(bloomfilter: BloomFilter): F[Either[String, GossipMessage]]
 
-  def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): F[Either[String, Seq[Transaction.Signed]]]
+  def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): F[Either[String, Seq[Transaction.Verifiable]]]
 
   def state(stateRoot: UInt256Bytes): F[Either[String, Option[State]]]
 

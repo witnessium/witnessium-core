@@ -16,13 +16,13 @@ trait GossipRepository[F[_]] {
 
   def blockVotes(blockHash: UInt256Bytes): F[Either[String, Set[Signature]]]
 
-  def newTransactions(bloomFilter: BloomFilter): F[Either[String, Set[Transaction.Signed]]]
+  def newTransactions(bloomFilter: BloomFilter): F[Either[String, Set[Transaction.Verifiable]]]
 
-  def newTransaction(transactionHash: UInt256Bytes): F[Either[String, Option[Transaction.Signed]]]
+  def newTransaction(transactionHash: UInt256Bytes): F[Either[String, Option[Transaction.Verifiable]]]
 
   def putNewBlockSuggestion(header: BlockHeader, transactionHashes: Set[UInt256Bytes]): F[Unit]
 
-  def putNewTransaction(transaction: Transaction.Signed): F[Unit]
+  def putNewTransaction(transaction: Transaction.Verifiable): F[Unit]
 
   def putNewBlockVote(blockHash: UInt256Bytes, signature: Signature): F[Unit]
 

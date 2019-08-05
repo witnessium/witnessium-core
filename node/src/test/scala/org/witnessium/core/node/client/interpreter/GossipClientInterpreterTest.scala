@@ -31,7 +31,7 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
 
   val sampleTransactions = Arbitrary(for {
     count <- Gen.choose(1, 10)
-    transactions <- Gen.listOfN(count, arbitrarySigned[Transaction].arbitrary)
+    transactions <- Gen.listOfN(count, arbitraryVerifiable[Transaction].arbitrary)
   } yield transactions).arbitrary.pureApply(Gen.Parameters.default, seed)
 
   val sampleTransactionHashes = sampleTransactions.map{ signedTransaction => crypto.hash(signedTransaction.value) }
@@ -53,7 +53,7 @@ object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
       IO.pure(Left(bloomfilter.toString))
     }
 
-    def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): IO[Either[String, Seq[Transaction.Signed]]] = {
+    def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): IO[Either[String, Seq[Transaction.Verifiable]]] = {
       IO.pure(Either.cond(transactionHashes === sampleTransactionHashes,
         sampleTransactions,
         s"Incorrect input: $transactionHashes"
