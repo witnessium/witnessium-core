@@ -27,7 +27,7 @@ import swaydb.serializers.Default.ArraySerializer
 
 import codec.circe._
 import datatype.{BigNat, Confidential, UInt256Bytes, UInt256Refine}
-import endpoint.{GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
+import endpoint.{BlockEndpoint, GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
 import model.{Address, NetworkId}
 import repository._
 import repository.interpreter._
@@ -93,6 +93,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   val gossipEndpoint: GossipEndpoint = new GossipEndpoint(localGossipService)
   val nodeStatusEndpoint: NodeStatusEndpoint = new NodeStatusEndpoint(localGossipService)
+  val blockEndpoint: BlockEndpoint = new BlockEndpoint(blockExplorerService)
   val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(transactionService, blockExplorerService)
 
   val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
@@ -101,6 +102,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val jsonEndpoint = (nodeStatusEndpoint.Get
+    :+: blockEndpoint.Get
     :+: transactionEndpoint.Get
     :+: transactionEndpoint.Post
     :+: gossipEndpoint.Status
