@@ -17,8 +17,9 @@ import service.{BlockExplorerService, TransactionService}
 class TransactionEndpoint(transactionService: TransactionService[IO], blockExplorerService: BlockExplorerService[IO]) {
 
   val Get: Endpoint[IO, Transaction.Verifiable] = get("trasaction" ::
-    path[UInt256Bytes].withToString("transactionHash")
+    path[UInt256Bytes].withToString("{transactionHash}")
   ) { (transactionHash: UInt256Bytes) =>
+    scribe.info(s"Receive get transaction request: $transactionHash")
     blockExplorerService.transaction(transactionHash).map {
       case Right(Some(transactionVerifiable)) => Ok(transactionVerifiable)
       case Right(None) => NotFound(new Exception(s"Not found: $transactionHash"))
@@ -29,6 +30,7 @@ class TransactionEndpoint(transactionService: TransactionService[IO], blockExplo
   }
 
   val Post: Endpoint[IO, UInt256Bytes] = post("transaction"::jsonBody[Transaction.Signed]) { (t: Transaction.Signed) =>
+    scribe.info(s"Receive post transaction request: $t")
     transactionService.submit(t).map{
       case Left(msg) => BadRequest(new Exception(msg))
       case Right(bytes) => Ok(bytes)

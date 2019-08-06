@@ -12,7 +12,7 @@ import service.BlockExplorerService
 class AddressEndpoint(blockExplorerService: BlockExplorerService[IO]) {
 
   val Get: Endpoint[IO, Seq[Transaction.Verifiable]] = get("address" ::
-    path[Address].withToString("address")
+    path[Address].withToString("{address}")
   ) { (address: Address) =>
     blockExplorerService.unused(address).map {
       case Right(transactions) => Ok(transactions)

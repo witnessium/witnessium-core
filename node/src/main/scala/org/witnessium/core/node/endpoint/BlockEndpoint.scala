@@ -13,7 +13,7 @@ import service.BlockExplorerService
 class BlockEndpoint(blockExplorerService: BlockExplorerService[IO]) {
 
   val Get: Endpoint[IO, Block] = get("block" ::
-    path[UInt256Bytes].withToString("blockHash")
+    path[UInt256Bytes].withToString("{blockHash}")
   ) { (blockHash: UInt256Bytes) =>
     blockExplorerService.block(blockHash).map {
       case Right(Some(block)) => Ok(block)
