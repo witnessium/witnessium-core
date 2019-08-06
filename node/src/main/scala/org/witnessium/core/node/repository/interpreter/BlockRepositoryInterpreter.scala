@@ -8,7 +8,7 @@ import swaydb.Map
 import swaydb.data.IO
 
 import codec.byte.{ByteDecoder, ByteEncoder}
-import datatype.UInt256Bytes
+import datatype.{BigNat, UInt256Bytes}
 import model.{Block, BlockHeader, Signature}
 
 class BlockRepositoryInterpreter(
@@ -25,6 +25,8 @@ class BlockRepositoryInterpreter(
       } yield decoded.value
     }
   }
+
+  def bestHeader: IO[Either[String, BlockHeader]] = ???
 
   def getTransactionHashes(blockHash: UInt256Bytes): IO[Either[String, Seq[UInt256Bytes]]] = {
     swayTransactionsMap.get(blockHash.toArray).map { bytesOption =>
@@ -43,6 +45,8 @@ class BlockRepositoryInterpreter(
       } yield decoded.value
     }
   }
+
+  def size: IO[Either[String, BigNat]] = ???
 
   def put(block: Block): IO[Unit] = {
     val blockHeaderArray = ByteEncoder[BlockHeader].encode(block.header).toArray

@@ -12,6 +12,9 @@ object UInt256Refine {
 
   def from[A: UInt256RefineOps](a: A): Either[String, UInt256Refined[A]] = UInt256RefineOps[A].from(a)
 
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+  val EmptyBytes: UInt256Bytes = UInt256Refine.from(ByteVector.low(32)).toOption.get
+
   implicit class UInt256RefinedSyntax[A](val uint256: UInt256Refined[A]) extends AnyVal {
     def toBytes(implicit ops: UInt256RefineOps[A]): ByteVector = ops.toBytes(uint256)
     def toBigInt(implicit ops: UInt256RefineOps[A]): BigInt = ops.toBigInt(uint256)

@@ -8,11 +8,10 @@ import cats.data.NonEmptyList
 import cats.implicits._
 import eu.timepit.refined.refineMV
 import eu.timepit.refined.numeric.NonNegative
-import scodec.bits.ByteVector
 import swaydb.data.IO
 import datatype.{BigNat, UInt256Bytes, UInt256Refine}
 import model.{Address, Block, BlockHeader, Genesis, NetworkId, State, Transaction}
-import repository.{BlockRepository, StateRepository, TransactionRepository}
+import repository.{BlockRepository, GossipRepository, StateRepository, TransactionRepository}
 import util.SwayIOCats._
 
 class GenesisBlockSetupServiceInterpreter(
@@ -22,12 +21,10 @@ class GenesisBlockSetupServiceInterpreter(
   blockRepository: BlockRepository[IO],
   stateRepository: StateRepository[IO],
   transactionRepository: TransactionRepository[IO],
+  gossipRepository: GossipRepository[IO]
 ) extends GenesisBlockSetupService[IO] {
 
   def apply(): IO[Unit] = {
-
-    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-    val emptyBytes = UInt256Refine.from(ByteVector.low(32)).toOption.get
 
     val transaction = Transaction(
       networkId = networkId,
@@ -44,7 +41,7 @@ class GenesisBlockSetupServiceInterpreter(
 
     val genesisBlockHeader: BlockHeader = BlockHeader(
       number = refineMV[NonNegative](BigInt(1)),
-      parentHash = crypto.hash[UInt256Bytes](emptyBytes),
+      parentHash = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
       stateRoot = crypto.hash[State](state),
       transactionsRoot = crypto.hash[List[Transaction]](List(transaction)),
       timestamp = genesisInstant,
@@ -55,6 +52,8 @@ class GenesisBlockSetupServiceInterpreter(
       transactionHashes = Set(transactionHash),
       votes = Set.empty,
     )
+
+    gossipRepository.genesisHash = crypto.hash(genesisBlockHeader)
 
     NonEmptyList.of(
       state.unused.toList.traverse{ case (address, transactionHash) =>
