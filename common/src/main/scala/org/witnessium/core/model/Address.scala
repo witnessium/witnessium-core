@@ -4,7 +4,7 @@ package model
 import scodec.bits.ByteVector
 
 final case class Address private (bytes: ByteVector) extends AnyVal {
-  override def toString: String = bytes.toBase64
+  override def toString: String = bytes.toHex
 }
 
 object Address {
@@ -21,6 +21,11 @@ object Address {
 
   def fromBase64(base64: String): Either[String, Address] = for {
     bytes <- ByteVector.fromBase64Descriptive(base64)
+    address <- Address(bytes)
+  } yield address
+
+  def fromHex(hexString: String): Either[String, Address] = for {
+    bytes <- ByteVector.fromHexDescriptive(hexString)
     address <- Address(bytes)
   } yield address
 }
