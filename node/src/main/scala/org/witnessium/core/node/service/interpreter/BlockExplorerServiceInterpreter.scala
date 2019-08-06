@@ -9,10 +9,11 @@ import cats.implicits._
 import swaydb.data.{IO => SwayIO}
 import datatype.UInt256Bytes
 import model.{Address, Block, Transaction}
-import repository.{GossipRepository, StateRepository, TransactionRepository}
+import repository.{BlockRepository, GossipRepository, StateRepository, TransactionRepository}
 import util.SwayIOCats._
 
 class BlockExplorerServiceInterpreter(
+  blockRepository: BlockRepository[SwayIO],
   gossipRepository: GossipRepository[SwayIO],
   stateRepository: StateRepository[SwayIO],
   transactionRepository: TransactionRepository[SwayIO],
@@ -33,6 +34,11 @@ class BlockExplorerServiceInterpreter(
     } yield transaction)
   } yield transactions).value.toIO
 
-  override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = ???
-
+  override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = (for{
+    blockHeaderOption <- EitherT(blockRepository.getHeader(blockHash))
+    blockOption <- blockHeaderOption.fold(EitherT.pure[SwayIO, String](Option.empty[Block]))(blockHeader => for {
+      transactionHashes <-EitherT(blockRepository.getTransactionHashes(blockHash))
+      signatures <-EitherT(blockRepository.getSignatures(blockHash))
+    } yield Some(Block(blockHeader, transactionHashes.toSet, signatures.toSet)))
+  } yield blockOption).value.toIO
 }

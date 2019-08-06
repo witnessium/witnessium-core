@@ -89,7 +89,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    ****************************************/
 
   val blockExplorerService: BlockExplorerService[IO] = new BlockExplorerServiceInterpreter(
-    gossipRepository, stateRepository, transactionRepository
+    blockRepository, gossipRepository, stateRepository, transactionRepository
   )
 
   val localGossipService: LocalGossipService[IO] =

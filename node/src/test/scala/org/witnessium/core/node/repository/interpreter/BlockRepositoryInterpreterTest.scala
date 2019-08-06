@@ -43,7 +43,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
       for {
         headerEither <- repo.getHeader(blockHash)
       } yield {
-        assertMatch(headerEither){ case Left(_) => }
+        assert(headerEither === Right(None))
       }
     }
 
@@ -52,7 +52,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
         _ <- repo.put(block)
         headerEither <- repo.getHeader(blockHash)
       } yield {
-        assert(headerEither === Right(block.header))
+        assert(headerEither === Right(Some(block.header)))
       }
     }
 
