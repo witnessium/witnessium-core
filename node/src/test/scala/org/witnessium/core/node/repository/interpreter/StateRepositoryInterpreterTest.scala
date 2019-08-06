@@ -56,7 +56,7 @@ object StateRepositoryInterpreterTest extends TestSuite {
         _ <- repo.put(targetAddress, transactionHash2)
         result <- repo.get(targetAddress)
       } yield {
-        assert(result === Seq(transactionHash1, transactionHash2))
+        assert(result === Right(Seq(transactionHash1, transactionHash2)))
       }
     }
 
@@ -67,7 +67,7 @@ object StateRepositoryInterpreterTest extends TestSuite {
         _ <- repo.remove(targetAddress, transactionHash1)
         result <- repo.get(targetAddress)
       } yield {
-        assert(result === Seq(transactionHash2))
+        assert(result === Right(Seq(transactionHash2)))
       }
     }
   }

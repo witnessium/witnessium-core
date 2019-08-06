@@ -2,6 +2,7 @@ package org.witnessium.core
 package node.repository
 package interpreter
 
+import cats.implicits._
 import scodec.bits.ByteVector
 import swaydb._
 import swaydb.data.IO
@@ -14,7 +15,7 @@ class StateRepositoryInterpreter(swayMap: Map[Array[Byte], Array[Byte], IO]) ext
   def contains(address: Address, transactionHash: UInt256Bytes): IO[Boolean] =
     swayMap.contains((address.bytes ++ transactionHash).toArray)
 
-  def get(address: Address): IO[Seq[UInt256Bytes]] = {
+  def get(address: Address): IO[Either[String, Seq[UInt256Bytes]]] = {
     val byteArray = address.bytes.toArray
 
     swayMap
@@ -23,8 +24,8 @@ class StateRepositoryInterpreter(swayMap: Map[Array[Byte], Array[Byte], IO]) ext
       .takeWhile(_ startsWith byteArray)
       .materialize
       .map{ addressAndTransactionHashes =>
-        addressAndTransactionHashes.flatMap{ addressAndTransactionHash =>
-          UInt256Refine.from(ByteVector.view(addressAndTransactionHash drop byteArray.size)).toOption.toList
+        addressAndTransactionHashes.toList.traverse{ addressAndTransactionHash =>
+          UInt256Refine.from(ByteVector.view(addressAndTransactionHash drop byteArray.size))
         }
       }
   }

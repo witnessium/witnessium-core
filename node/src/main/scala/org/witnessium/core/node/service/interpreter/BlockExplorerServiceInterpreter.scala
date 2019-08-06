@@ -5,14 +5,16 @@ package interpreter
 
 import cats.data.EitherT
 import cats.effect.IO
+import cats.implicits._
 import swaydb.data.{IO => SwayIO}
 import datatype.UInt256Bytes
 import model.{Address, Block, Transaction}
-import repository.{GossipRepository, TransactionRepository}
+import repository.{GossipRepository, StateRepository, TransactionRepository}
 import util.SwayIOCats._
 
 class BlockExplorerServiceInterpreter(
   gossipRepository: GossipRepository[SwayIO],
+  stateRepository: StateRepository[SwayIO],
   transactionRepository: TransactionRepository[SwayIO],
 ) extends BlockExplorerService[IO] {
 
@@ -23,7 +25,13 @@ class BlockExplorerServiceInterpreter(
     })(t => EitherT.rightT(Some(t)))
   } yield transactionOption).value.toIO
 
-  override def unused(address: Address): IO[Either[String, Seq[Transaction.Verifiable]]] = ???
+  override def unused(address: Address): IO[Either[String, Seq[Transaction.Verifiable]]] = (for {
+    transactionHashes <- EitherT(stateRepository.get(address))
+    transactions <- transactionHashes.toList.traverse(transactionHash => for {
+      transactionOption <- EitherT(transactionRepository.get(transactionHash))
+      transaction <- EitherT.fromOption[SwayIO](transactionOption, s"Fail to find transaction $transactionHash")
+    } yield transaction)
+  } yield transactions).value.toIO
 
   override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = ???
 
