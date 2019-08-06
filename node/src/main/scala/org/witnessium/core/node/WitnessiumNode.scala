@@ -31,8 +31,8 @@ import endpoint.{GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, Transaction
 import model.{Address, NetworkId}
 import repository._
 import repository.interpreter._
-import service.{LocalGossipService, TransactionService}
-import service.interpreter.{LocalGossipServiceInterpreter, TransactionServiceInterpreter}
+import service.{BlockExplorerService, LocalGossipService, TransactionService}
+import service.interpreter._
 import util.{EncodeException, ServingHtml}
 import util.SwayIOCats._
 import view.Index
@@ -80,6 +80,8 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    *  Setup Services
    ****************************************/
 
+  val blockExplorerService: BlockExplorerService[IO] = new BlockExplorerServiceInterpreter()
+
   val localGossipService: LocalGossipService[IO] =
     new LocalGossipServiceInterpreter(nodeConfig.networkId, blockRepository, gossipRepository)
 
@@ -91,15 +93,16 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   val gossipEndpoint: GossipEndpoint = new GossipEndpoint(localGossipService)
   val nodeStatusEndpoint: NodeStatusEndpoint = new NodeStatusEndpoint(localGossipService)
-  val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(transactionService)
+  val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(transactionService, blockExplorerService)
 
   val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
 
   val javascriptEndpoint: Endpoint[IO, Buf] = new JsFileEndpoint().Get
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  val jsonEndpoint = (transactionEndpoint.Post
-    :+: nodeStatusEndpoint.Get
+  val jsonEndpoint = (nodeStatusEndpoint.Get
+    :+: transactionEndpoint.Get
+    :+: transactionEndpoint.Post
     :+: gossipEndpoint.Status
     :+: gossipEndpoint.BloomFilter
     :+: gossipEndpoint.UnknownTransactions

@@ -7,7 +7,7 @@ import datatype.UInt256Bytes
 import model.{GossipMessage, Transaction}
 
 class TransactionServiceInterpreter extends TransactionService[IO] {
-  override def submit(transaction: Transaction): IO[Either[String, UInt256Bytes]] = ???
+  override def submit(transaction: Transaction.Signed): IO[Either[String, UInt256Bytes]] = ???
   override def listen(listener: GossipMessage => IO[Unit]): Unit = ???
   override def stop(): IO[Unit] = ???
 }
