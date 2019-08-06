@@ -1,3 +1,4 @@
+/*
 package org.witnessium.core
 package node.service
 
@@ -18,3 +19,4 @@ class BlockchainCoreNodeService[F[_]: Monad](
     peerGossipPullingService.listen(nodeStateUpdateService.onGossip)
   }
 }
+ */

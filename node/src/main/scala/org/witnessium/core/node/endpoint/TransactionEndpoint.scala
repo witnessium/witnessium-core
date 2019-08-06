@@ -31,9 +31,6 @@ class TransactionEndpoint(transactionService: TransactionService[IO], blockExplo
 
   val Post: Endpoint[IO, UInt256Bytes] = post("transaction"::jsonBody[Transaction.Signed]) { (t: Transaction.Signed) =>
     scribe.info(s"Receive post transaction request: $t")
-    transactionService.submit(t).map{
-      case Left(msg) => BadRequest(new Exception(msg))
-      case Right(bytes) => Ok(bytes)
-    }
+    transactionService.submit(t).map(Ok(_))
   }
 }

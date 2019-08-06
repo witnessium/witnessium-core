@@ -5,5 +5,5 @@ import cats.effect.IO
 import model.GossipMessage
 
 trait GossipMessagePublisher {
-  def listen(listener: GossipMessage => IO[Unit]): Unit
+  def gossipListener: GossipMessage => IO[Unit]
 }
