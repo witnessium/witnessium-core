@@ -4,6 +4,7 @@ package repository
 package interpreter
 
 import cats.data.EitherT
+import cats.implicits._
 import scodec.bits.ByteVector
 import swaydb._
 import swaydb.data.IO
@@ -15,13 +16,14 @@ import util.SwayIOCats._
 
 class TransactionRepositoryInterpreter(swayMap: Map[Array[Byte], Array[Byte], IO]) extends TransactionRepository[IO] {
 
-  def get(transactionHash: UInt256Bytes): IO[Either[String, Transaction.Verifiable]] = (for {
-    array <- EitherT.fromOptionF(
-      swayMap.get(transactionHash.toBytes.toArray),
-      s"Does not exist transaction with hash $transactionHash"
-    )
-    decodeResult <- EitherT.fromEither[IO](ByteDecoder[Transaction.Verifiable].decode(ByteVector.view(array)))
-  } yield decodeResult.value).value
+  def get(transactionHash: UInt256Bytes): IO[Either[String, Option[Transaction.Verifiable]]] = (for {
+    arrayOption <- EitherT.right(swayMap.get(transactionHash.toBytes.toArray))
+    decodeResult <- arrayOption.traverse{ array =>
+      EitherT.fromEither[IO](
+        ByteDecoder[Transaction.Verifiable].decode(ByteVector.view(array))
+      )
+    }
+  } yield decodeResult.map(_.value)).value
 
   def put(verifiableTransaction: Transaction.Verifiable): IO[Either[String, Unit]] = (for{
     bytes <- EitherT.pure[IO, String](ByteEncoder[Transaction.Verifiable].encode(verifiableTransaction))

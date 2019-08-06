@@ -18,12 +18,13 @@ import endpoint._
 import model.{Block, GossipMessage, ModelArbitrary, NodeStatus, State, Transaction}
 import p2p.BloomFilter
 import service.LocalGossipService
+import util.EncodeException
 
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.rng.Seed
 import utest._
 
-object GossipClientInterpreterTest extends TestSuite with ModelArbitrary {
+object GossipClientInterpreterTest extends TestSuite with ModelArbitrary with EncodeException {
 
   val seed = Seed.random()
 

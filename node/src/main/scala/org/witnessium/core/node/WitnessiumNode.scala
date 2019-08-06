@@ -76,11 +76,17 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     swayNewTransactionMap = swayInmemoryDb,
   )
 
+  val transactionRepository: TransactionRepository[SwayIO] = new TransactionRepositoryInterpreter(
+    swayDb(Paths.get("sway", "transaction"))
+  )
+
   /****************************************
    *  Setup Services
    ****************************************/
 
-  val blockExplorerService: BlockExplorerService[IO] = new BlockExplorerServiceInterpreter()
+  val blockExplorerService: BlockExplorerService[IO] = new BlockExplorerServiceInterpreter(
+    gossipRepository, transactionRepository
+  )
 
   val localGossipService: LocalGossipService[IO] =
     new LocalGossipServiceInterpreter(nodeConfig.networkId, blockRepository, gossipRepository)

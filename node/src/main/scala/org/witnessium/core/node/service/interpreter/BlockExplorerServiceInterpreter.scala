@@ -3,20 +3,25 @@ package node
 package service
 package interpreter
 
+import cats.data.EitherT
 import cats.effect.IO
+import swaydb.data.{IO => SwayIO}
 import datatype.UInt256Bytes
 import model.{Address, Block, Transaction}
+import repository.{GossipRepository, TransactionRepository}
+import util.SwayIOCats._
 
-//import cats.data.EitherT
-//import swaydb.data.{IO => SwayIO}
-//import datatype.UInt256Bytes
-//import model.{Block, GossipMessage, NetworkId, NodeStatus, State, Transaction}
-//import repository.{BlockRepository, GossipRepository}
-//import util.SwayIOCats._
+class BlockExplorerServiceInterpreter(
+  gossipRepository: GossipRepository[SwayIO],
+  transactionRepository: TransactionRepository[SwayIO],
+) extends BlockExplorerService[IO] {
 
-class BlockExplorerServiceInterpreter() extends BlockExplorerService[IO] {
-
-  override def transaction(transactionHash: UInt256Bytes): IO[Either[String, Option[Transaction.Verifiable]]] = ???
+  override def transaction(transactionHash: UInt256Bytes): IO[Either[String, Option[Transaction.Verifiable]]] = (for{
+    finalizedTransactionOption <- EitherT(transactionRepository.get(transactionHash))
+    transactionOption <- finalizedTransactionOption.fold(EitherT{
+      gossipRepository.newTransaction(transactionHash)
+    })(t => EitherT.rightT(Some(t)))
+  } yield transactionOption).value.toIO
 
   override def unused(address: Address): IO[Either[String, Seq[Transaction.Verifiable]]] = ???
 
