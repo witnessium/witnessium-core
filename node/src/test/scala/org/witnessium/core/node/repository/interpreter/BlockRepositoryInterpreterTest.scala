@@ -28,8 +28,10 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
       db0 <- newMap
       db1 <- newMap
       db2 <- newMap
-      newRepo = new BlockRepositoryInterpreter(db0, db1, db2)
+      db3 <- newMap
+      newRepo = new BlockRepositoryInterpreter(db0, db1, db2, db3)
       result <- testBody(newRepo)
+      _ <- db3.closeDatabase()
       _ <- db2.closeDatabase()
       _ <- db1.closeDatabase()
       _ <- db0.closeDatabase()

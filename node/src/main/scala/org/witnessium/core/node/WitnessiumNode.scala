@@ -1,8 +1,10 @@
 package org.witnessium.core
 package node
 
+import java.nio.file.{Path, Paths}
 import java.time.Instant
 import cats.effect.IO
+import cats.effect.concurrent.Ref
 import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.filter.Cors
 import com.twitter.finagle.http.{Request, Response}
@@ -20,17 +22,22 @@ import pureconfig.{CamelCase, ConfigFieldMapping, SnakeCase}
 import pureconfig.error.ConfigReaderFailures
 import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
+import swaydb.data.{IO => SwayIO}
+import swaydb.serializers.Default.ArraySerializer
 
 import codec.circe._
-import datatype.{BigNat, Confidential}
-import endpoint.{GossipEndpoint, JsFileEndpoint, TransactionEndpoint}
+import datatype.{BigNat, Confidential, UInt256Bytes, UInt256Refine}
+import endpoint.{GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
 import model.{Address, NetworkId}
+import repository._
+import repository.interpreter._
 import service.{LocalGossipService, TransactionService}
 import service.interpreter.{LocalGossipServiceInterpreter, TransactionServiceInterpreter}
-import util.ServingHtml
+import util.{EncodeException, ServingHtml}
+import util.SwayIOCats._
 import view.Index
 
-object WitnessiumNode extends TwitterServer with ServingHtml {
+object WitnessiumNode extends TwitterServer with ServingHtml with EncodeException {
 
   /****************************************
    *  Load Config
@@ -50,14 +57,32 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   val Right(Config(nodeConfig, peersConfig, genesisConfig)) = configEither
 
   /****************************************
-   *  Setup Algebra Interpreters
+   *  Setup Repositories
    ****************************************/
+  def swayDb(dir: Path): swaydb.Map[Array[Byte], Array[Byte], SwayIO] = swaydb.persistent.Map(dir).get
+  def swayInmemoryDb: swaydb.Map[Array[Byte], Array[Byte], SwayIO] = swaydb.memory.Map().get
+
+  val blockRepository: BlockRepository[SwayIO] = new BlockRepositoryInterpreter(
+    swayBestHeaderMap = swayDb(Paths.get("sway", "block", "best-header")),
+    swayHeaderMap = swayDb(Paths.get("sway", "block", "header")),
+    swayTransactionsMap = swayDb(Paths.get("sway", "block", "transaction")),
+    swaySignaturesMap = swayDb(Paths.get("sway", "block", "signature")),
+  )
+
+  val gossipRepository: GossipRepository[SwayIO] = new GossipRepositoryInterpreter(
+    genesisHashRef = Ref.unsafe[SwayIO, UInt256Bytes](UInt256Refine.EmptyBytes),
+    swayBlockSuggestionMap = swayInmemoryDb,
+    swayBlockVoteMap = swayInmemoryDb,
+    swayNewTransactionMap = swayInmemoryDb,
+  )
 
   /****************************************
    *  Setup Services
    ****************************************/
 
-  val localGossipService: LocalGossipService[IO] = new LocalGossipServiceInterpreter()
+  val localGossipService: LocalGossipService[IO] =
+    new LocalGossipServiceInterpreter(nodeConfig.networkId, blockRepository, gossipRepository)
+
   val transactionService: TransactionService[IO] = new TransactionServiceInterpreter()
 
   /****************************************
@@ -65,13 +90,16 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
    ****************************************/
 
   val gossipEndpoint: GossipEndpoint = new GossipEndpoint(localGossipService)
+  val nodeStatusEndpoint: NodeStatusEndpoint = new NodeStatusEndpoint(localGossipService)
   val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(transactionService)
 
   val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
 
   val javascriptEndpoint: Endpoint[IO, Buf] = new JsFileEndpoint().Get
 
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val jsonEndpoint = (transactionEndpoint.Post
+    :+: nodeStatusEndpoint.Get
     :+: gossipEndpoint.Status
     :+: gossipEndpoint.BloomFilter
     :+: gossipEndpoint.UnknownTransactions

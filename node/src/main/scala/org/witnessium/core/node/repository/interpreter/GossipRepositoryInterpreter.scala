@@ -4,6 +4,7 @@ package repository
 package interpreter
 
 import cats.data.EitherT
+import cats.effect.concurrent.Ref
 import cats.implicits._
 import scodec.bits.ByteVector
 import swaydb.Map
@@ -16,10 +17,15 @@ import p2p.BloomFilter
 import util.SwayIOCats._
 
 class GossipRepositoryInterpreter(
+  genesisHashRef: Ref[IO, UInt256Bytes],
   swayBlockSuggestionMap: Map[Array[Byte], Array[Byte], IO],
   swayBlockVoteMap: Map[Array[Byte], Array[Byte], IO],
   swayNewTransactionMap: Map[Array[Byte], Array[Byte], IO],
 ) extends GossipRepository[IO] {
+
+  def genesisHash_= (hash: UInt256Bytes): Unit = genesisHashRef.set(hash).get
+
+  def genesisHash: UInt256Bytes = genesisHashRef.get.get
 
   def blockSuggestions(): IO[Either[String, Set[BlockSuggestion]]] = {
     swayBlockSuggestionMap

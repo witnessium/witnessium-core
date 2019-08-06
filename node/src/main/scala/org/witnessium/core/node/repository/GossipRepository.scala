@@ -10,6 +10,10 @@ trait GossipRepository[F[_]] {
 
   type BlockSuggestion = (BlockHeader, Set[UInt256Bytes])
 
+  def genesisHash_= (hash: UInt256Bytes): Unit
+
+  def genesisHash: UInt256Bytes
+
   def blockSuggestions(): F[Either[String, Set[BlockSuggestion]]]
 
   def blockSuggestion(blockHash: UInt256Bytes): F[Either[String, Option[BlockSuggestion]]]

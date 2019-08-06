@@ -8,6 +8,8 @@ trait BlockRepository[F[_]] {
 
   def getHeader(blockHash: UInt256Bytes): F[Either[String, BlockHeader]]
 
+  def bestHeader: F[Either[String, BlockHeader]]
+
   def getTransactionHashes(blockHash: UInt256Bytes): F[Either[String, Seq[UInt256Bytes]]]
 
   def getSignatures(blockHash: UInt256Bytes): F[Either[String, Seq[Signature]]]

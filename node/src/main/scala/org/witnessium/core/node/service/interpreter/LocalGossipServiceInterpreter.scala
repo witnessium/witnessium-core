@@ -3,34 +3,29 @@ package node
 package service
 package interpreter
 
+import cats.data.EitherT
 import cats.effect.IO
+import swaydb.data.{IO => SwayIO}
 import datatype.UInt256Bytes
-import model.{Block, GossipMessage, NodeStatus, State, Transaction}
+import model.{Block, GossipMessage, NetworkId, NodeStatus, State, Transaction}
+import repository.{BlockRepository, GossipRepository}
 import p2p.BloomFilter
+import util.SwayIOCats._
 
-class LocalGossipServiceInterpreter extends LocalGossipService[IO] {
+class LocalGossipServiceInterpreter(
+  networkId: NetworkId,
+  blockRepository: BlockRepository[SwayIO],
+  gossipRepository: GossipRepository[SwayIO],
+) extends LocalGossipService[IO] {
 
-  import eu.timepit.refined.refineV
-  import eu.timepit.refined.numeric.NonNegative
-  import scodec.bits.ByteVector
-  import datatype.{BigNat, UInt256Refine}
-
-  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-  def nat(n: Int): BigNat = refineV[NonNegative](BigInt(n)).toOption.get
-
-  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-  def hexToUInt256Bytes(hex: String): UInt256Bytes = (for {
-    bytes <- ByteVector.fromHex(hex)
-    refined <- UInt256Refine.from(bytes).toOption
-  } yield refined).get
-
-  def status: IO[Either[String, NodeStatus]] = IO.pure(Right(NodeStatus(
-    networkId = nat(1),
-    genesisHash = hexToUInt256Bytes("0x8001a8a780ff6ebfe4ad0000bb7f807f7f01d2807f8056ffb3c700003a5000ff"),
-    bestHash = hexToUInt256Bytes("0x80602b0aff00f9dc017f017f7fff75f06700637f29cd807f506c35d37fff7f80"),
-    number = nat(1),
-    blockProviding = nat(1),
-  )))
+  override def status: IO[Either[String, NodeStatus]] = (for {
+    bestBlockHeader <- EitherT(blockRepository.bestHeader)
+  } yield NodeStatus(
+    networkId = networkId,
+    genesisHash = gossipRepository.genesisHash,
+    bestHash = crypto.hash(bestBlockHeader),
+    number = bestBlockHeader.number,
+  )).value.toIO
 
   override def bloomfilter(bloomfilter: BloomFilter): IO[Either[String, GossipMessage]] = ???
 
