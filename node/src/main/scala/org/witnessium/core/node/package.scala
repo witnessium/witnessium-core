@@ -8,7 +8,6 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.Interval
 import eu.timepit.refined.pureconfig._
 import io.finch.ToAsync
-
 import pureconfig.{ConfigConvert, ConfigReader}
 import pureconfig.error.CannotConvert
 import scalatags.Text.TypedTag

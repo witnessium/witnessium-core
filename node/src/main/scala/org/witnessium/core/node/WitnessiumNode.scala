@@ -27,17 +27,17 @@ import swaydb.serializers.Default.ArraySerializer
 
 import codec.circe._
 import datatype.{BigNat, Confidential, UInt256Bytes, UInt256Refine}
-import endpoint.{GossipEndpoint, JsFileEndpoint, TransactionEndpoint}
+import endpoint.{GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
 import model.{Address, NetworkId}
 import repository._
 import repository.interpreter._
 import service.{LocalGossipService, TransactionService}
 import service.interpreter.{LocalGossipServiceInterpreter, TransactionServiceInterpreter}
-import util.ServingHtml
+import util.{EncodeException, ServingHtml}
 import util.SwayIOCats._
 import view.Index
 
-object WitnessiumNode extends TwitterServer with ServingHtml {
+object WitnessiumNode extends TwitterServer with ServingHtml with EncodeException {
 
   /****************************************
    *  Load Config
@@ -90,6 +90,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
    ****************************************/
 
   val gossipEndpoint: GossipEndpoint = new GossipEndpoint(localGossipService)
+  val nodeStatusEndpoint: NodeStatusEndpoint = new NodeStatusEndpoint(localGossipService)
   val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(transactionService)
 
   val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
@@ -98,6 +99,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val jsonEndpoint = (transactionEndpoint.Post
+    :+: nodeStatusEndpoint.Get
     :+: gossipEndpoint.Status
     :+: gossipEndpoint.BloomFilter
     :+: gossipEndpoint.UnknownTransactions
