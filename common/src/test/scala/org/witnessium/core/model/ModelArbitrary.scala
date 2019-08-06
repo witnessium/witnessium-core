@@ -133,7 +133,7 @@ trait ModelArbitrary {
       blockSuggestionsSize <- Gen.choose(0, 4)
       blockSuggestionList <- Gen.listOfN(blockSuggestionsSize, blockSuggestionsArbitrary.arbitrary)
       blockVotes <- blockVotesArbitrary(blockSuggestionsSize).arbitrary
-      newTransactions <- arbitrarySet[Transaction].arbitrary
+      newTransactions <- arbitrarySet[Transaction.Verifiable].arbitrary
     } yield GossipMessage(blockSuggestionList.toSet, blockVotes, newTransactions))
   }
 

@@ -53,15 +53,22 @@ class GossipRepositoryInterpreter(
   }
 
   def blockVotes(blockHash: UInt256Bytes): IO[Either[String, Set[Signature]]] = {
-    swayBlockVoteMap.get(blockHash.toArray).map{ byteArrayOption =>
-      byteArrayOption.map{ byteArray =>
-        val byteVector = ByteVector.view(byteArray)
-        ByteDecoder[Set[Signature]].decode(byteVector).filterOrElse(
-          _.remainder.isEmpty,
-          s"Non empty bytes after decoding block votes: $byteVector"
-        ).map(_.value)
-      }.getOrElse(Right[String, Set[Signature]](Set.empty))
-    }
+    val byteArray = blockHash.toArray
+
+    swayBlockVoteMap
+      .keys
+      .fromOrAfter(byteArray)
+      .takeWhile(_ startsWith byteArray)
+      .materialize
+      .map{ blockHashAndSignatures =>
+        blockHashAndSignatures.toList.traverse[Either[String, *], Signature]{ blockHashAndSignature =>
+          val byteVector = ByteVector.view(blockHashAndSignature drop byteArray.size)
+          ByteDecoder[Signature].decode(byteVector).filterOrElse(
+            _.remainder.isEmpty,
+            s"Non empty bytes after decoding signature: $byteVector"
+          ).map(_.value)
+        }.map(_.toSet)
+      }
   }
 
   def newTransactions(bloomFilter: BloomFilter): IO[Either[String, Set[Transaction.Verifiable]]] = {
@@ -105,8 +112,8 @@ class GossipRepositoryInterpreter(
   }
 
   def putNewBlockVote(blockHash: UInt256Bytes, signature: Signature): IO[Unit] = swayBlockVoteMap.put(
-    blockHash.toArray,
-    ByteEncoder[Signature].encode(signature).toArray
+    key = (blockHash ++ ByteEncoder[Signature].encode(signature)).toArray,
+    value = Array.empty
   ).map(_ => ())
 
   def finalizeBlock(blockhash: UInt256Bytes): IO[Either[String, Unit]] = (for {
