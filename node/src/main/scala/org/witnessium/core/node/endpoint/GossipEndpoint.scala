@@ -48,7 +48,7 @@ class GossipEndpoint(localGossipService: LocalGossipService[IO]) {
   }
 
   val State: Endpoint[IO, State] = get(
-    ApiPath.gossip.state.toEndpoint :: path[UInt256Bytes].withToString("stateRoot")
+    ApiPath.gossip.state.toEndpoint :: path[UInt256Bytes].withToString("{stateRoot}")
   ){ (stateRoot: UInt256Bytes) =>
     scribe.info(s"Receive gossip state request: $stateRoot")
     localGossipService.state(stateRoot).map {
@@ -61,7 +61,7 @@ class GossipEndpoint(localGossipService: LocalGossipService[IO]) {
   }
 
   val Block: Endpoint[IO, Block] = get(
-    ApiPath.gossip.block.toEndpoint :: path[UInt256Bytes].withToString("blockHash")
+    ApiPath.gossip.block.toEndpoint :: path[UInt256Bytes].withToString("{blockHash}")
   ){ (blockHash: UInt256Bytes) =>
     scribe.info(s"Receive gossip block request: $blockHash")
     localGossipService.block(blockHash).map {

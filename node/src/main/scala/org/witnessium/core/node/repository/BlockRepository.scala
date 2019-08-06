@@ -6,7 +6,7 @@ import model.{Block, BlockHeader, Signature}
 
 trait BlockRepository[F[_]] {
 
-  def getHeader(blockHash: UInt256Bytes): F[Either[String, BlockHeader]]
+  def getHeader(blockHash: UInt256Bytes): F[Either[String, Option[BlockHeader]]]
 
   def bestHeader: F[Either[String, BlockHeader]]
 

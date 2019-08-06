@@ -45,7 +45,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
       for {
         trEither <- repo.get(transactionHash)
       } yield {
-        assertMatch(trEither){ case Left(_) => }
+        assertMatch(trEither){ case Right(None) => }
       }
     }
 
@@ -54,7 +54,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
         _ <- repo.put(signedTransaction)
         trEither <- repo.get(transactionHash)
       } yield {
-        assert(trEither === Right(signedTransaction))
+        assert(trEither === Right(Some(signedTransaction)))
       }
     }
 
@@ -64,7 +64,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
         _ <- repo.removeWithHash(transactionHash)
         result <- repo.get(transactionHash)
       } yield {
-        assertMatch(result){ case Left(_) => }
+        assertMatch(result){ case Right(None) => }
       }
     }
 
@@ -74,7 +74,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
         _ <- repo.remove(signedTransaction)
         result <- repo.get(transactionHash)
       } yield {
-        assertMatch(result){ case Left(_) => }
+        assertMatch(result){ case Right(None) => }
       }
     }
   }

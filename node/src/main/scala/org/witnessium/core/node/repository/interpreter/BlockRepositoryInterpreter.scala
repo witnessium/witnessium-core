@@ -3,6 +3,8 @@ package node
 package repository
 package interpreter
 
+import cats.data.OptionT
+import cats.implicits._
 import scodec.bits.ByteVector
 import swaydb.Map
 import swaydb.data.IO
@@ -20,18 +22,19 @@ class BlockRepositoryInterpreter(
 
   private val BestHeaderKey: Array[Byte] = Array.empty[Byte]
 
-  def getHeader(blockHash: UInt256Bytes): IO[Either[String, BlockHeader]] = {
-    swayHeaderMap.get(blockHash.toArray) map decodeHeader(s"Do not exist block header: $blockHash")
+  def getHeader(blockHash: UInt256Bytes): IO[Either[String, Option[BlockHeader]]] = {
+    swayHeaderMap.get(blockHash.toArray).map(bytesOption => (for {
+      bytes <- OptionT.fromOption[Either[String, *]](bytesOption)
+      decoded <- OptionT.liftF(ByteDecoder[BlockHeader].decode(ByteVector.view(bytes)))
+    } yield decoded.value).value)
   }
 
-  def bestHeader: IO[Either[String, BlockHeader]] = {
-    swayBestHeaderMap.get(BestHeaderKey) map decodeHeader("Do not exist best block header")
+  def bestHeader: IO[Either[String, BlockHeader]] = swayBestHeaderMap.get(BestHeaderKey).map{ bytesOption =>
+    for {
+      bytes <- bytesOption.toRight("Do not exist best block header")
+      decoded <- ByteDecoder[BlockHeader].decode(ByteVector.view(bytes))
+    } yield decoded.value
   }
-
-  private def decodeHeader(msg: String)(bytesOption: Option[Array[Byte]]): Either[String, BlockHeader] = for {
-    bytes <- bytesOption.toRight(msg)
-    decoded <- ByteDecoder[BlockHeader].decode(ByteVector.view(bytes))
-  } yield decoded.value
 
   def getTransactionHashes(blockHash: UInt256Bytes): IO[Either[String, Seq[UInt256Bytes]]] = {
     swayTransactionsMap.get(blockHash.toArray).map { bytesOption =>

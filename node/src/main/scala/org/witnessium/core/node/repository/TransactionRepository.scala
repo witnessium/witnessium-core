@@ -6,7 +6,7 @@ import model.Transaction
 
 trait TransactionRepository[F[_]] {
 
-  def get(transactionHash: UInt256Bytes): F[Either[String, Transaction.Verifiable]]
+  def get(transactionHash: UInt256Bytes): F[Either[String, Option[Transaction.Verifiable]]]
 
   def put(signedTransaction: Transaction.Verifiable): F[Either[String, Unit]]
 

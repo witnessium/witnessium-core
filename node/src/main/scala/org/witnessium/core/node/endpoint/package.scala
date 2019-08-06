@@ -4,6 +4,7 @@ package node
 import io.finch.DecodePath
 import scodec.bits.ByteVector
 import datatype.{UInt256Bytes, UInt256Refine}
+import model.Address
 
 package object endpoint {
 
@@ -13,4 +14,6 @@ package object endpoint {
       refined <- UInt256Refine.from(bytes)
     } yield refined).toOption
   }
+
+  implicit val addressDecoder: DecodePath[Address] = Address.fromHex(_).toOption
 }
