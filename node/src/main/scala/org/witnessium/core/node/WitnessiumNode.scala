@@ -63,6 +63,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml {
   def swayInmemoryDb: swaydb.Map[Array[Byte], Array[Byte], SwayIO] = swaydb.memory.Map().get
 
   val blockRepository: BlockRepository[SwayIO] = new BlockRepositoryInterpreter(
+    swayBestHeaderMap = swayDb(Paths.get("sway", "block", "best-header")),
     swayHeaderMap = swayDb(Paths.get("sway", "block", "header")),
     swayTransactionsMap = swayDb(Paths.get("sway", "block", "transaction")),
     swaySignaturesMap = swayDb(Paths.get("sway", "block", "signature")),

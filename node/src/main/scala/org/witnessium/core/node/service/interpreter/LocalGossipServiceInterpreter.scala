@@ -20,13 +20,11 @@ class LocalGossipServiceInterpreter(
 
   override def status: IO[Either[String, NodeStatus]] = (for {
     bestBlockHeader <- EitherT(blockRepository.bestHeader)
-    size <- EitherT(blockRepository.size)
   } yield NodeStatus(
     networkId = networkId,
     genesisHash = gossipRepository.genesisHash,
     bestHash = crypto.hash(bestBlockHeader),
     number = bestBlockHeader.number,
-    blockProviding = size,
   )).value.toIO
 
   override def bloomfilter(bloomfilter: BloomFilter): IO[Either[String, GossipMessage]] = ???
