@@ -31,7 +31,7 @@ import endpoint.{BlockEndpoint, GossipEndpoint, JsFileEndpoint, NodeStatusEndpoi
 import model.{Address, NetworkId}
 import repository._
 import repository.interpreter._
-import service.{BlockExplorerService, LocalGossipService, TransactionService}
+import service.{BlockExplorerService, LocalGossipService, NodeStateUpdateService, TransactionService}
 import service.interpreter._
 import util.{EncodeException, ServingHtml}
 import util.SwayIOCats._
@@ -87,6 +87,9 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   /****************************************
    *  Setup Services
    ****************************************/
+  val nodeStateUpdateService: NodeStateUpdateService[IO] = new NodeStateUpdateServiceInterpreter(
+    gossipRepository
+  )
 
   val blockExplorerService: BlockExplorerService[IO] = new BlockExplorerServiceInterpreter(
     blockRepository, gossipRepository, stateRepository, transactionRepository
@@ -95,7 +98,9 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   val localGossipService: LocalGossipService[IO] =
     new LocalGossipServiceInterpreter(nodeConfig.networkId, blockRepository, gossipRepository)
 
-  val transactionService: TransactionService[IO] = new TransactionServiceInterpreter()
+  val transactionService: TransactionService[IO] = new TransactionServiceInterpreter(
+    nodeStateUpdateService.onGossip
+  )
 
   /****************************************
    *  Setup Endpoints and API

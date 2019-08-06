@@ -1,13 +1,21 @@
 package org.witnessium.core
-package node.service
+package node
+package service
 package interpreter
 
 import cats.effect.IO
 import datatype.UInt256Bytes
 import model.{GossipMessage, Transaction}
 
-class TransactionServiceInterpreter extends TransactionService[IO] {
-  override def submit(transaction: Transaction.Signed): IO[Either[String, UInt256Bytes]] = ???
-  override def listen(listener: GossipMessage => IO[Unit]): Unit = ???
-  override def stop(): IO[Unit] = ???
+class TransactionServiceInterpreter(
+  val gossipListener: GossipMessage => IO[Unit],
+) extends TransactionService[IO] {
+  override def submit(transaction: Transaction.Signed): IO[UInt256Bytes] = {
+    val gossipMessage = GossipMessage(
+      blockSuggestions = Set.empty,
+      blockVotes = Map.empty,
+      newTransactions = Set[Transaction.Verifiable](transaction),
+    )
+    gossipListener(gossipMessage).map(_ => crypto.hash[Transaction.Verifiable](transaction))
+  }
 }
