@@ -13,7 +13,6 @@ import swaydb.data.IO
 import codec.byte.{ByteDecoder, ByteEncoder}
 import datatype.UInt256Bytes
 import model.{BlockHeader, Signature, Transaction}
-import p2p.BloomFilter
 import util.SwayIOCats._
 
 class GossipRepositoryInterpreter(
@@ -71,7 +70,7 @@ class GossipRepositoryInterpreter(
       }
   }
 
-  def newTransactions(bloomFilter: BloomFilter): IO[Either[String, Set[Transaction.Verifiable]]] = {
+  def newTransactions: IO[Either[String, Set[Transaction.Verifiable]]] = {
     swayNewTransactionMap
       .map(_._2)
       .materialize

@@ -4,7 +4,6 @@ package repository
 
 import datatype.UInt256Bytes
 import model.{BlockHeader, Signature, Transaction}
-import p2p.BloomFilter
 
 trait GossipRepository[F[_]] {
 
@@ -20,7 +19,7 @@ trait GossipRepository[F[_]] {
 
   def blockVotes(blockHash: UInt256Bytes): F[Either[String, Set[Signature]]]
 
-  def newTransactions(bloomFilter: BloomFilter): F[Either[String, Set[Transaction.Verifiable]]]
+  def newTransactions: F[Either[String, Set[Transaction.Verifiable]]]
 
   def newTransaction(transactionHash: UInt256Bytes): F[Either[String, Option[Transaction.Verifiable]]]
 

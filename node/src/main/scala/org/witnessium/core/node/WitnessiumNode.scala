@@ -31,7 +31,7 @@ import endpoint.{BlockEndpoint, GossipEndpoint, JsFileEndpoint, NodeStatusEndpoi
 import model.{Address, NetworkId}
 import repository._
 import repository.interpreter._
-import service.{BlockExplorerService, LocalGossipService, NodeStateUpdateService, TransactionService}
+import service._
 import service.interpreter._
 import util.{EncodeException, ServingHtml}
 import util.SwayIOCats._
@@ -43,8 +43,8 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    *  Load Config
    ****************************************/
 
-  final case class NodeConfig(networkId: NetworkId, port: Port, privateKey: Confidential[String])
-  final case class PeerConfig(hostname: String, port: Int, publicKey: String)
+  final case class NodeConfig(networkId: NetworkId, port: Port, nodeNumber: Int, privateKey: Confidential[String])
+  final case class PeerConfig(hostname: String, port: Int, nodeNumber: Int, publicKey: String)
   final case class GenesisConfig(initialDistribution: Map[Address, BigNat], createdAt: Instant)
   final case class Config(node: NodeConfig, peers: List[PeerConfig], genesis: GenesisConfig)
 
@@ -55,6 +55,11 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val Right(Config(nodeConfig, peersConfig, genesisConfig)) = configEither
+
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  val Right(localKeyPair) = for {
+    bytes <- scodec.bits.ByteVector.fromBase64Descriptive(nodeConfig.privateKey.value)
+  } yield crypto.KeyPair.fromPrivate(BigInt(1, bytes.toArray))
 
   /****************************************
    *  Setup Repositories
@@ -88,11 +93,18 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    *  Setup Services
    ****************************************/
   val nodeStateUpdateService: NodeStateUpdateService[IO] = new NodeStateUpdateServiceInterpreter(
-    gossipRepository
+    blockRepository, gossipRepository
   )
 
   val blockExplorerService: BlockExplorerService[IO] = new BlockExplorerServiceInterpreter(
     blockRepository, gossipRepository, stateRepository, transactionRepository
+  )
+
+  val BlockSuggestionService: BlockSuggestionService[IO] = new BlockSuggestionServiceInterpreter(
+    localKeyPair = localKeyPair,
+    gossipListener = nodeStateUpdateService.onGossip,
+    blockRepository = blockRepository,
+    gossipRepository = gossipRepository
   )
 
   val localGossipService: LocalGossipService[IO] =

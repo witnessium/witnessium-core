@@ -1,6 +1,7 @@
 node {
   network_id = 101
   port = 8081
+  node_number = 1
   private_key = "PrivateKey1"
 }
 
@@ -8,16 +9,19 @@ peers = [
   {
     hostname = "localhost"
     port = 8082
+    node_number = 2
     public_key = "PublicKey2"
   },
   {
     hostname = "localhost"
     port = 8083
+    node_number = 3
     public_key = "PublicKey3"
   },
   {
     hostname = "localhost"
     port = 8084
+    node_number = 4
     public_key = "PublicKey4"
   },
 ]
