@@ -11,7 +11,7 @@ import com.twitter.finagle.http.{Request, Response}
 import com.twitter.finagle.param.Stats
 import com.twitter.io.Buf
 import com.twitter.server.TwitterServer
-import com.twitter.util.Await
+import com.twitter.util.{Await, Future => TwitterFuture}
 import eu.timepit.refined.pureconfig._
 import io.circe.generic.auto._
 import io.circe.refined._
@@ -26,6 +26,8 @@ import swaydb.data.{IO => SwayIO}
 import swaydb.serializers.Default.ArraySerializer
 
 import codec.circe._
+import client.GossipClient
+import client.interpreter.GossipClientInterpreter
 import datatype.{BigNat, Confidential, UInt256Bytes, UInt256Refine}
 import endpoint.{BlockEndpoint, GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
 import model.{Address, NetworkId}
@@ -44,7 +46,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    ****************************************/
 
   final case class NodeConfig(networkId: NetworkId, port: Port, nodeNumber: Int, privateKey: Confidential[String])
-  final case class PeerConfig(hostname: String, port: Int, nodeNumber: Int, publicKey: String)
+  final case class PeerConfig(hostname: String, port: Port, nodeNumber: Int, publicKey: String)
   final case class GenesisConfig(initialDistribution: Map[Address, BigNat], createdAt: Instant)
   final case class Config(node: NodeConfig, peers: List[PeerConfig], genesis: GenesisConfig)
 
@@ -90,6 +92,14 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   )
 
   /****************************************
+   *  Setup Clients
+   ****************************************/
+
+  val clients: List[GossipClient[TwitterFuture]] = peersConfig.map { peerConfig =>
+    new GossipClientInterpreter(peerConfig.hostname, peerConfig.port)
+  }
+
+  /****************************************
    *  Setup Services
    ****************************************/
   val nodeStateUpdateService: NodeStateUpdateService[IO] = new NodeStateUpdateServiceInterpreter(
@@ -100,7 +110,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     blockRepository, gossipRepository, stateRepository, transactionRepository
   )
 
-  val BlockSuggestionService: BlockSuggestionService[IO] = new BlockSuggestionServiceInterpreter(
+  val blockSuggestionService: BlockSuggestionService[IO] = new BlockSuggestionServiceInterpreter(
     localKeyPair = localKeyPair,
     gossipListener = nodeStateUpdateService.onGossip,
     blockRepository = blockRepository,
@@ -112,6 +122,27 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   val transactionService: TransactionService[IO] = new TransactionServiceInterpreter(
     nodeStateUpdateService.onGossip
+  )
+
+  val peerConnectionService: PeerConnectionService[TwitterFuture] = new PeerConnectionServiceInterpreter(clients)
+
+  val genesisBlockSetupService: GenesisBlockSetupService[SwayIO] = new GenesisBlockSetupServiceInterpreter(
+    networkId = nodeConfig.networkId,
+    genesisInstant = genesisConfig.createdAt,
+    initialDistribution = genesisConfig.initialDistribution,
+    blockRepository = blockRepository,
+    stateRepository = stateRepository,
+    transactionRepository = transactionRepository,
+    gossipRepository = gossipRepository,
+  )
+
+  val nodeInitializationService: NodeInitializationService[IO] = new NodeInitializationServiceInterpreter(
+    genesisBlockSetupService = genesisBlockSetupService,
+    localGossipService = localGossipService,
+    peerConnectionService = peerConnectionService,
+    stateRepository = stateRepository,
+    transactionRepository = transactionRepository,
+    blockRepository = blockRepository,
   )
 
   /****************************************
@@ -162,6 +193,20 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    ****************************************/
   @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   def main(): Unit = {
+
+    implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+
+    import cats.implicits._
+    implicit val timer: cats.effect.Timer[IO] = IO.timer(ec)
+
+    //val startIO: IO[Either[String, Unit]] = genesisBlockSetupService()
+    val startIO: IO[Unit] = nodeInitializationService.initialize *> blockSuggestionService.run
+
+    startIO.unsafeToFuture().onComplete {
+      case scala.util.Success(v) => scribe.info(s"startIO finishes successfully: $v")
+      case scala.util.Failure(t) => scribe.error("An error has occurred in startIO: " + t.getMessage)
+    }
+
     try {
       val server = Http.server
         .withStreaming(enabled = true)

@@ -23,9 +23,11 @@ trait CirceCodec {
   implicit val circeUInt256BigIntEncoder: Encoder[UInt256BigInt] = Encoder.encodeString.contramap(_.toString)
 
   implicit val circeUInt256BytesDecoder: Decoder[UInt256Bytes] = Decoder.decodeString.emap((str: String) => for {
-    bytes <- ByteVector.fromBase64Descriptive(str)
+    bytes <- ByteVector.fromHexDescriptive(str)
     refined <- UInt256Refine.from(bytes)
   } yield refined)
+
+  implicit val circeUInt256BytesEncoder: Encoder[UInt256Bytes] = Encoder.encodeString.contramap(_.toHex)
 
   implicit val circeBitVectorDecoder: Decoder[BitVector] = Decoder.decodeString.emap{ (str: String) =>
     BitVector.fromBase64(str).toRight(s"Base64 decoding failure: $str")

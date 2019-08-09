@@ -55,6 +55,9 @@ class GenesisBlockSetupServiceInterpreter(
 
     gossipRepository.genesisHash = crypto.hash(genesisBlockHeader)
 
+    scribe.info(s"Genesis Block Hash: ${gossipRepository.genesisHash}")
+    scribe.info(s"Genesis Block: $genesisBlock")
+
     NonEmptyList.of(
       state.unused.toList.traverse{ case (address, transactionHash) =>
         stateRepository.put(address, transactionHash)

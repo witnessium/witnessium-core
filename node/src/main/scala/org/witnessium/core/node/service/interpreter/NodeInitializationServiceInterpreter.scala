@@ -14,7 +14,7 @@ import util.SwayIOCats._
 
 class NodeInitializationServiceInterpreter(
   genesisBlockSetupService: GenesisBlockSetupService[SwayIO],
-  localGossipService: LocalGossipService[SwayIO],
+  localGossipService: LocalGossipService[IO],
   peerConnectionService: PeerConnectionService[Future],
   stateRepository: StateRepository[SwayIO],
   transactionRepository: TransactionRepository[SwayIO],
