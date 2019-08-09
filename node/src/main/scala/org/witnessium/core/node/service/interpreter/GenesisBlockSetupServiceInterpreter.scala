@@ -40,7 +40,7 @@ class GenesisBlockSetupServiceInterpreter(
     )
 
     val genesisBlockHeader: BlockHeader = BlockHeader(
-      number = refineMV[NonNegative](BigInt(1)),
+      number = refineMV[NonNegative](BigInt(0)),
       parentHash = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
       stateRoot = crypto.hash[State](state),
       transactionsRoot = crypto.hash[List[Transaction]](List(transaction)),

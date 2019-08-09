@@ -203,8 +203,11 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     val startIO: IO[Unit] = nodeInitializationService.initialize *> blockSuggestionService.run
 
     startIO.unsafeToFuture().onComplete {
-      case scala.util.Success(v) => scribe.info(s"startIO finishes successfully: $v")
-      case scala.util.Failure(t) => scribe.error("An error has occurred in startIO: " + t.getMessage)
+      case scala.util.Success(v) =>
+        scribe.info(s"startIO finishes successfully: $v")
+      case scala.util.Failure(t) =>
+        scribe.error("An error has occurred in startIO: " + t.getMessage)
+        t.printStackTrace()
     }
 
     try {
