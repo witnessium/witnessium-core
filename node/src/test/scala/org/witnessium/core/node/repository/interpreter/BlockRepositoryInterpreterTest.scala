@@ -47,12 +47,29 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
       }
     }
 
+    test("getBestHeader from empty repository") - withNewRepo { repo =>
+      for {
+        headerEither <- repo.bestHeader
+      } yield {
+        assert(headerEither === Left("Do not exist best block header"))
+      }
+    }
+
     test("put and getHeader") - withNewRepo { repo =>
       for {
         _ <- repo.put(block)
         headerEither <- repo.getHeader(blockHash)
       } yield {
         assert(headerEither === Right(Some(block.header)))
+      }
+    }
+
+    test("put and bestHeader") - withNewRepo { repo =>
+      for {
+        _ <- repo.put(block)
+        headerEither <- repo.bestHeader
+      } yield {
+        assert(headerEither === Right(block.header))
       }
     }
 

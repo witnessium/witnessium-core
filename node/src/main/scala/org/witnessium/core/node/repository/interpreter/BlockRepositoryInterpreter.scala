@@ -20,7 +20,7 @@ class BlockRepositoryInterpreter(
   swaySignaturesMap: Map[Array[Byte], Array[Byte], IO],
 ) extends BlockRepository[IO] {
 
-  private val BestHeaderKey: Array[Byte] = Array.empty[Byte]
+  private val BestHeaderKey: Array[Byte] = Array.fill(32)(0.toByte)
 
   def getHeader(blockHash: UInt256Bytes): IO[Either[String, Option[BlockHeader]]] = {
     swayHeaderMap.get(blockHash.toArray).map(bytesOption => (for {
@@ -59,12 +59,10 @@ class BlockRepositoryInterpreter(
     val blockHash = crypto.keccak256(blockHeaderArray)
     for {
       bestHeaderEither <- bestHeader
-      bestHeaderOption = bestHeaderEither.toOption
-      _ <- bestHeaderOption.map{ (bestBlockHeader: BlockHeader) =>
-        if (block.header.number.value > bestBlockHeader.number.value)
-          swayBestHeaderMap.put(BestHeaderKey, blockHeaderArray)
-        else IO.unit
-      }.getOrElse(IO.unit)
+      _ <- bestHeaderEither match {
+        case Right(bestHeaderValue) if block.header.number.value <= bestHeaderValue.number.value => IO.unit
+        case _ => swayBestHeaderMap.put(BestHeaderKey, blockHeaderArray)
+      }
       _ <- swayHeaderMap.put(blockHash, blockHeaderArray)
       _ <- swayTransactionsMap.put(blockHash,
         ByteEncoder[List[UInt256Bytes]].encode(block.transactionHashes.toList).toArray)
