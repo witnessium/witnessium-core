@@ -56,10 +56,10 @@ trait CirceCodec {
   implicit val circeInstantEncoder: Encoder[Instant] = Encoder.encodeLong.contramap(_.toEpochMilli)
 
   implicit val circeAddressDecoder: Decoder[Address] = Decoder.decodeString.emap{ (str: String) =>
-    Address.fromBase64(str)
+    Address.fromHex(str)
   }
 
-  implicit val circeAddressEncoder: Encoder[Address] = circeByteVectorEncoder.contramap[Address](_.bytes)
+  implicit val circeAddressEncoder: Encoder[Address] = Encoder.encodeString.contramap(_.toString)
 
   implicit val circeUInt256BytesKeyDecoder: KeyDecoder[UInt256Bytes] = KeyDecoder.instance((str: String) => for {
     bytes <- ByteVector.fromBase64(str)

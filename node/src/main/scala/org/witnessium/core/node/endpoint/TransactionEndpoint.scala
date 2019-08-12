@@ -16,7 +16,7 @@ import service.{BlockExplorerService, TransactionService}
 
 class TransactionEndpoint(transactionService: TransactionService[IO], blockExplorerService: BlockExplorerService[IO]) {
 
-  val Get: Endpoint[IO, Transaction.Verifiable] = get("trasaction" ::
+  val Get: Endpoint[IO, Transaction.Verifiable] = get("transaction" ::
     path[UInt256Bytes].withToString("{transactionHash}")
   ) { (transactionHash: UInt256Bytes) =>
     scribe.info(s"Receive get transaction request: $transactionHash")

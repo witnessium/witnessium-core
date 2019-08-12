@@ -22,7 +22,7 @@ package object node extends util.AsyncConvert {
   type Port = Int Refined PortRange
 
   implicit val mapReader: ConfigReader[Map[Address, BigNat]] = pureconfig.configurable.genericMapReader{
-    str => Address.fromBase64(str).left.map(CannotConvert(str, "Address", _))
+    str => Address.fromHex(str).left.map(CannotConvert(str, "Address", _))
   }
 
   implicit class AsyncOps[F[_], A](val a: F[A]) extends AnyVal {
