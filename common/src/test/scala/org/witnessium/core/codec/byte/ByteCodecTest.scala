@@ -13,7 +13,15 @@ import utest._
 object ByteCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary {
 
   def successfulRoundTrip[A:Arbitrary](implicit codec: ByteCodec[A]): Prop = forAll { (value: A) =>
-    codec.decode(codec.encode(value)) === Right(DecodeResult(value, ByteVector.empty))
+    val encoded = codec.encode(value)
+    val decodeResult = codec.decode(encoded)
+    val isMatched = decodeResult === Right(DecodeResult(value, ByteVector.empty))
+    if (!isMatched) {
+      println(s"===> value: $value")
+      println(s"===> encoded: $encoded")
+      println(s"===> decode result: $decodeResult")
+    }
+    isMatched
   }
 
   val tests = Tests {

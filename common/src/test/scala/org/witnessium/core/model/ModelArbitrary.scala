@@ -2,10 +2,8 @@ package org.witnessium.core
 package model
 
 import java.time.Instant
-import eu.timepit.refined.api.Refined
 import eu.timepit.refined.refineV
 import eu.timepit.refined.numeric.NonNegative
-import eu.timepit.refined.scalacheck.all._
 import org.scalacheck.{Arbitrary, Gen}
 import scodec.bits.{BitVector, ByteVector}
 import shapeless.nat._16
@@ -47,10 +45,10 @@ trait ModelArbitrary {
     Arbitrary(arbitraryList[(A, B)].arbitrary.map(_.toMap))
 
   implicit val arbitrarySignature: Arbitrary[Signature] = Arbitrary(for {
-    v <- Arbitrary.arbitrary[Int Refined Signature.HeaderRange]
+    v <- Gen.choose(27, 34)
     r <- arbitraryUInt256BigInt.arbitrary
     s <- arbitraryUInt256BigInt.arbitrary
-  } yield Signature(v, r, s))
+  } yield Signature(refineV[Signature.HeaderRange](v).toOption.get, r, s))
 
   implicit val arbitraryTransaction: Arbitrary[Transaction] = Arbitrary(for {
     networkId <- arbitraryBigNat.arbitrary
@@ -90,6 +88,7 @@ trait ModelArbitrary {
     votes <- Gen.listOfN(numberOfVotes, arbitrarySignature.arbitrary)
   } yield Block(heder, transactionHashes, votes.toSet))
 
+
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   implicit val arbitraryMerkleTrieNode: Arbitrary[MerkleTrieNode] = Arbitrary(for {
     isLeaf <- Gen.oneOf(true, false)
@@ -103,7 +102,7 @@ trait ModelArbitrary {
         MerkleTrieNode.Leaf(prefix, ByteVector.view(byteList.toArray))
       }
     } else {
-      Gen.containerOfN[Vector, UInt256Bytes](16, arbitraryUInt256Bytes.arbitrary).map {
+      Gen.containerOfN[Vector, Option[UInt256Bytes]](16, Gen.option(arbitraryUInt256Bytes.arbitrary)).map {
         unsizedChildren => MerkleTrieNode.Branch(prefix, unsizedChildren.sized(_16).get)
       }
     }

@@ -18,7 +18,7 @@ object MerkleTrieNode {
   final case class Branch(prefix: BitVector Refined PrefixCondition, children: Children) extends MerkleTrieNode
   final case class Leaf(prefix: BitVector Refined PrefixCondition, value: ByteVector) extends MerkleTrieNode
 
-  type Children = Vector[UInt256Bytes] Sized _16
+  type Children = Vector[Option[UInt256Bytes]] Sized _16
 
   type PrefixCondition = Size[Interval.Closed[W.`0L`.T, W.`508L`.T] And Divisible[W.`4L`.T]]
 }

@@ -8,7 +8,7 @@ import eu.timepit.refined.{refineMV, refineV}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric.NonNegative
-import scodec.bits.ByteVector
+import scodec.bits.{BitVector, ByteVector}
 import shapeless.{::, Generic, HList, HNil, Lazy, Nat, Sized}
 import shapeless.nat._16
 import shapeless.ops.nat.ToInt
@@ -137,8 +137,25 @@ object ByteDecoder {
   implicit val variableBytes: ByteDecoder[ByteVector] = bignatDecoder.flatMap(bignat => fromFixedSizeBytes(bignat.toLong)(identity))
 
   @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter","org.wartremover.warts.OptionPartial"))
-  def fixedSizedVectorDecoder[A](size: Nat)(implicit bda: ByteDecoder[A], toInt: ToInt[size.N]): ByteDecoder[Vector[A] Sized size.N] =
+  def fixedSizedVectorDecoder[A: ByteDecoder](size: Nat)(implicit toInt: ToInt[size.N]): ByteDecoder[Vector[A] Sized size.N] =
     sizedListDecoder[A](refineV[NonNegative](BigInt(toInt())).toOption.get).map(_.toVector.sized(size).get)
+
+  @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter", "org.wartremover.warts.TraversableOps"))
+  def fixedSizedOptionalVectorDecoder[A: ByteDecoder](size: Nat)(implicit
+    toInt: ToInt[size.N]
+  ): ByteDecoder[Vector[Option[A]] Sized size.N] = fromFixedSizeBytes(((toInt() + 7) / 8).toLong)(_.bits).flatMap{ bits =>
+    sizedListDecoder[A](nat(BigInt(bits.populationCount))).emap{ list =>
+      @annotation.tailrec
+      def loop(bits: BitVector, list: List[A], acc: List[Option[A]]): Either[String, List[Option[A]]] = {
+        if (bits.isEmpty) Right(acc.reverse) else (list match {
+          case _ if !bits.head => loop(bits.tail, list, None :: acc)
+          case Nil => Left(s"Not enough bytes: $bits $list $acc")
+          case _ => loop(bits.tail, list.tail, Some(list.head) :: acc)
+        })
+      }
+      loop(bits, list, List.empty).map(_.toVector.ensureSized[size.N])
+    }
+  }
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   implicit val addressDecoder: ByteDecoder[Address] = fromFixedSizeBytes(20){ Address(_).toOption.get }
@@ -171,8 +188,10 @@ object ByteDecoder {
       _.bits.takeRight(numberOfNibble * 4)
     }.emap{ prefix => refineV[MerkleTrieNode.PrefixCondition](prefix)}
     decoder <- ((uint8 >> 7) match {
-      case 0 => fixedSizedVectorDecoder[UInt256Bytes](_16).map(MerkleTrieNode.Branch(prefixRefined, _))
-      case 1 => variableBytes.map(MerkleTrieNode.Leaf(prefixRefined, _))
+      case 0 =>
+        fixedSizedOptionalVectorDecoder[UInt256Bytes](_16).map(MerkleTrieNode.Branch(prefixRefined, _))
+      case 1 =>
+        variableBytes.map(MerkleTrieNode.Leaf(prefixRefined, _))
     })
   } yield decoder
 }

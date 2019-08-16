@@ -7,7 +7,7 @@ import eu.timepit.refined.refineV
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric.NonNegative
-import scodec.bits.ByteVector
+import scodec.bits.{BitVector, ByteVector}
 import shapeless.{::, Generic, HList, HNil, Lazy}
 
 import datatype.{BigNat, MerkleTrieNode, UInt256Refined, UInt256Refine}
@@ -91,7 +91,8 @@ object ByteEncoder {
     val prefixNibbleSize = node.prefix.size / 4
     val (int, bytes) = node match {
       case MerkleTrieNode.Branch(prefix, children) =>
-        val concat: ByteVector = (ByteVector.empty /: children)(_ ++ _)
+        val existanceBytes = BitVector.bits(children.unsized.map(_.nonEmpty)).bytes
+        val concat: ByteVector = (existanceBytes /: children.flatMap(_.toList))(_ ++ _)
         (prefixNibbleSize, prefix.bytes ++ concat)
       case MerkleTrieNode.Leaf(prefix, value) =>
         ((1 << 7) + prefixNibbleSize, prefix.bytes ++ variableBytes.encode(value))
