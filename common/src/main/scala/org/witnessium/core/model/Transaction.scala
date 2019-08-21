@@ -1,11 +1,11 @@
 package org.witnessium.core
 package model
 
-import datatype.BigNat
+import datatype.{BigNat, UInt256Bytes}
 
 final case class Transaction(
   networkId: NetworkId,
-  inputs: Set[Address],
+  inputs: Set[UInt256Bytes],
   outputs: Set[(Address, BigNat)],
 )
 

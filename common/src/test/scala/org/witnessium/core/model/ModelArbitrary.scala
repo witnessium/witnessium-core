@@ -54,7 +54,7 @@ trait ModelArbitrary {
     networkId <- arbitraryBigNat.arbitrary
     inputSize <- Gen.choose(0, 10)
     outputSize <- Gen.choose(0, 10)
-    inputs <- Gen.listOfN(inputSize, arbitraryAddress.arbitrary)
+    inputs <- Gen.listOfN(inputSize, arbitraryUInt256Bytes.arbitrary)
     outputs <- Gen.listOfN(outputSize, arbitraryTuple2[Address, BigNat].arbitrary)
   } yield Transaction(networkId, inputs.toSet, outputs.toSet))
 

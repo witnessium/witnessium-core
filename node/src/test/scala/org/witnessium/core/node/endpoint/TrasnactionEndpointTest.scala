@@ -22,7 +22,7 @@ object TransactionEndpointTest extends TestSuite with ModelArbitrary  {
 
   val tx = Genesis(Transaction(
     networkId = refineMV[NonNegative](BigInt(1)),
-    inputs = Set.empty[Address],
+    inputs = Set.empty,
     outputs = Set((targetAddress, targetAmount)),
   ))
 
