@@ -32,7 +32,7 @@ object TransactionRepositoryInterpreterTest extends TestSuite {
 
   val signature = keyPair.sign(transactionHash.toArray).toOption.get
 
-  val signedTransaction = Signed[Transaction](transaction, signature)
+  val signedTransaction = Signed[Transaction](signature, transaction)
 
   def withNewRepo[A](testBody: TransactionRepository[IO] => IO[A]): Future[A] = (for {
     db <- swaydb.memory.Map[Array[Byte], Array[Byte]]()

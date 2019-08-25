@@ -11,7 +11,8 @@ import eu.timepit.refined.numeric.NonNegative
 import swaydb.data.IO
 import datatype.{BigNat, UInt256Bytes, UInt256Refine}
 import model.{Address, Block, BlockHeader, Genesis, NetworkId, State, Transaction}
-import repository.{BlockRepository, GossipRepository, StateRepository, TransactionRepository}
+import repository.{BlockRepository, GossipRepository, TransactionRepository}
+import service.StateService
 import util.SwayIOCats._
 
 class GenesisBlockSetupServiceInterpreter(
@@ -19,7 +20,7 @@ class GenesisBlockSetupServiceInterpreter(
   genesisInstant: Instant,
   initialDistribution: Map[Address, BigNat],
   blockRepository: BlockRepository[IO],
-  stateRepository: StateRepository[IO],
+  stateService: StateService[IO],
   transactionRepository: TransactionRepository[IO],
   gossipRepository: GossipRepository[IO]
 ) extends GenesisBlockSetupService[IO] {
@@ -42,7 +43,7 @@ class GenesisBlockSetupServiceInterpreter(
     val genesisBlockHeader: BlockHeader = BlockHeader(
       number = refineMV[NonNegative](BigInt(0)),
       parentHash = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
-      stateRoot = crypto.hash[State](state),
+      stateRoot = stateService.hash(state),
       transactionsRoot = crypto.hash[List[Transaction]](List(transaction)),
       timestamp = genesisInstant,
     )
@@ -59,9 +60,7 @@ class GenesisBlockSetupServiceInterpreter(
     scribe.info(s"Genesis Block: $genesisBlock")
 
     NonEmptyList.of(
-      state.unused.toList.traverse{ case (address, transactionHash) =>
-        stateRepository.put(address, transactionHash)
-      },
+      stateService.put(state),
       transactionRepository.put(Genesis(transaction)),
       blockRepository.put(genesisBlock),
     ).sequence.map(_ => ())

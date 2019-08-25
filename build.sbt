@@ -18,6 +18,7 @@ lazy val silencerVersion = "1.4.1"
 lazy val splainVersion = "0.4.1"
 lazy val kindProjectorVersion = "0.10.3"
 lazy val betterMonadicForVersion = "0.3.0"
+lazy val scalaTypedHoleVersion = "0.1.0"
 
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
@@ -32,6 +33,7 @@ lazy val sharedSettings = Seq(
   addCompilerPlugin("io.tryp" %% "splain" % splainVersion cross CrossVersion.patch),
   addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion),
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % betterMonadicForVersion),
+  addCompilerPlugin("com.github.cb372" % "scala-typed-holes" % scalaTypedHoleVersion cross CrossVersion.full),
 
   resolvers += Resolver.sonatypeRepo("releases"),
 
@@ -39,6 +41,9 @@ lazy val sharedSettings = Seq(
 
   // 2.13 preview
   scalacOptions += "-Xsource:2.13",
+
+  // scala-typed-holes set log-level info
+  scalacOptions += "-P:typed-holes:log-level:info",
 
   // Linter
   scalacOptions ++= Seq(

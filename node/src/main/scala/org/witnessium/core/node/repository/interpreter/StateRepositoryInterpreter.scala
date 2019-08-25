@@ -7,10 +7,13 @@ import scodec.bits.ByteVector
 import swaydb._
 import swaydb.data.IO
 
-import datatype.{UInt256Bytes, UInt256Refine}
+import datatype.{MerkleTrieNode, UInt256Bytes, UInt256Refine}
 import model.Address
 
 class StateRepositoryInterpreter(swayMap: Map[Array[Byte], Array[Byte], IO]) extends StateRepository[IO] {
+
+  def getMerkleTrieNode(merkleRoot: UInt256Bytes): IO[Either[String, Option[MerkleTrieNode]]] =
+    IO.Success(Right(None))
 
   def contains(address: Address, transactionHash: UInt256Bytes): IO[Boolean] =
     swayMap.contains((address.bytes ++ transactionHash).toArray)

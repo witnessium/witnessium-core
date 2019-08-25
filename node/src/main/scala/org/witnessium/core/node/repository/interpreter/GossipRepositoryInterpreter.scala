@@ -40,7 +40,7 @@ class GossipRepositoryInterpreter(
   }
 
   def blockSuggestion(blockHash: UInt256Bytes): IO[Either[String, Option[BlockSuggestion]]] = {
-    swayBlockVoteMap.get(blockHash.toArray).map{ byteArrayOption =>
+    swayBlockSuggestionMap.get(blockHash.toArray).map{ byteArrayOption =>
       byteArrayOption.traverse[Either[String, *], BlockSuggestion]{ byteArray =>
         val byteVector = ByteVector.view(byteArray)
         ByteDecoder[BlockSuggestion].decode(byteVector).filterOrElse(
@@ -105,9 +105,8 @@ class GossipRepositoryInterpreter(
 
   def putNewTransaction(transaction: Transaction.Verifiable): IO[Unit] = {
     val transactionBytes = ByteEncoder[Transaction.Verifiable].encode(transaction)
-    val hash = crypto.keccak256(transactionBytes.toArray)
-
-    swayNewTransactionMap.put(hash, transactionBytes.toArray).map(_ => ())
+    val hash = crypto.hash(transaction.value)
+    swayNewTransactionMap.put(hash.toArray, transactionBytes.toArray).map(_ => ())
   }
 
   def putNewBlockVote(blockHash: UInt256Bytes, signature: Signature): IO[Unit] = swayBlockVoteMap.put(

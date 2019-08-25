@@ -61,7 +61,7 @@ trait ModelArbitrary {
   implicit def arbitrarySigned[A](implicit aa: Arbitrary[A]): Arbitrary[Signed[A]] = Arbitrary(for {
     a <- aa.arbitrary
     sig <- arbitrarySignature.arbitrary
-  } yield Signed(a, sig))
+  } yield Signed(sig, a))
 
   implicit def arbitraryVerifiable[A: Arbitrary]: Arbitrary[Verifiable[A]] = Arbitrary(Gen.frequency(
     (1, Arbitrary.arbitrary[A].map(Genesis(_))),

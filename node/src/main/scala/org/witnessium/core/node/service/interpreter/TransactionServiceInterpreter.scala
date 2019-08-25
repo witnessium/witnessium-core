@@ -16,6 +16,7 @@ class TransactionServiceInterpreter(
       blockVotes = Map.empty,
       newTransactions = Set[Transaction.Verifiable](transaction),
     )
+    scribe.info(s"Generate new gossip message: $gossipMessage")
     gossipListener(gossipMessage).map(_ => crypto.hash[Transaction.Verifiable](transaction))
   }
 }

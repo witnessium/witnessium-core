@@ -25,10 +25,12 @@ class BlockSuggestionServiceInterpreter(
   gossipRepository: GossipRepository[SwayIO],
 ) extends BlockSuggestionService[IO] {
 
-  @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
+  @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter", "org.wartremover.warts.Recursion"))
   def run(implicit timer: Timer[IO]): IO[Unit] = for {
-    _ <- IO.sleep(100.millis)
+    _ <- IO.sleep(2000.millis)
+    _ <- IO(scribe.info(s"running block suggention service"))
     _ <- suggestBlock
+    _ <- run
   } yield ()
 //    second <- timer.clock.realTime(SECOND)
 //    _ <- if (!isLeader(second)) IO.unit else {
@@ -50,25 +52,35 @@ class BlockSuggestionServiceInterpreter(
 //    }
 //  }
 
-  def suggestBlock: IO[Either[String, Unit]] = (for {
+  @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
+  def suggestBlock(implicit timer: Timer[IO]): IO[Either[String, Unit]] = (for {
     bestBlockHeader <- EitherT(blockRepository.bestHeader.toIO)
+    _ <- EitherT.pure[IO, String](scribe.info(s"Best block header: $bestBlockHeader"))
     newTransactions <- EitherT(gossipRepository.newTransactions.toIO)
     transactionHashes = newTransactions.map{ newTransaction => crypto.hash(newTransaction.value) }
-    number <- EitherT.fromEither[IO](refineV[NonNegative](bestBlockHeader.number.value + 1))
-    newBlockHeader = BlockHeader(
-      number = number,
-      parentHash = crypto.hash(bestBlockHeader),
-      stateRoot = datatype.UInt256Refine.EmptyBytes,
-      transactionsRoot = crypto.hash(transactionHashes.toList.sortBy(_.toHex)),
-      timestamp = Instant.now(),
-    )
-    newBlockHash = crypto.hash(newBlockHeader)
-    signature <- EitherT.fromEither[IO](localKeyPair.sign(newBlockHash.toArray))
-    gossipMessage = GossipMessage(
-      blockSuggestions = Set((newBlockHeader, transactionHashes)),
-      blockVotes = Map(newBlockHash -> Set(signature)),
-      newTransactions = Set.empty,
-    )
-    _ <- EitherT.right[String](gossipListener(gossipMessage))
+    _ <- if (newTransactions.isEmpty) EitherT.pure[IO, String]{
+      scribe.info(s"No new transaction: $newTransactions")
+    } else (for {
+      _ <- EitherT.pure[IO, String](scribe.info(s"generating new block with transactions: $transactionHashes"))
+      number <- EitherT.fromEither[IO](refineV[NonNegative](bestBlockHeader.number.value + 1))
+      now <- EitherT.right[String](timer.clock.realTime(MILLISECONDS))
+      newBlockHeader = BlockHeader(
+        number = number,
+        parentHash = crypto.hash(bestBlockHeader),
+        stateRoot = datatype.UInt256Refine.EmptyBytes,
+        transactionsRoot = crypto.hash(transactionHashes.toList.sortBy(_.toHex)),
+        timestamp = Instant.ofEpochMilli(now),
+      )
+      newBlockHash = crypto.hash(newBlockHeader)
+      _ <- EitherT.pure[IO, String](scribe.info(s"next block header: $newBlockHeader"))
+      signature <- EitherT.fromEither[IO](localKeyPair.sign(newBlockHash.toArray))
+      gossipMessage = GossipMessage(
+        blockSuggestions = Set((newBlockHeader, transactionHashes)),
+        blockVotes = Map(newBlockHash -> Set(signature)),
+        newTransactions = Set.empty,
+      )
+      _ <- EitherT.pure[IO, String](scribe.info(s"Block suggestion gossip message: $gossipMessage"))
+      _ <- EitherT.right[String](gossipListener(gossipMessage))
+    } yield ())
   } yield ()).value
 }
