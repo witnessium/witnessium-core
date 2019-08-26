@@ -162,6 +162,13 @@ lazy val node = (project in file("node"))
   )
   .dependsOn(common.jvm % "test->test;compile->compile")
 
+lazy val consoleClient = (project in file("console"))
+  .settings(sharedSettings)
+  .settings(
+    name := "witnessium-core-console-client",
+  )
+  .dependsOn(node, common.jvm)
+
 lazy val js = (project in file("js"))
   .settings(sharedSettings)
   .settings(

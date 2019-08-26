@@ -67,7 +67,7 @@ class BlockSuggestionServiceInterpreter(
       newBlockHeader = BlockHeader(
         number = number,
         parentHash = crypto.hash(bestBlockHeader),
-        stateRoot = datatype.UInt256Refine.EmptyBytes,
+        stateRoot = crypto.hash(datatype.UInt256Refine.EmptyBytes),
         transactionsRoot = crypto.hash(transactionHashes.toList.sortBy(_.toHex)),
         timestamp = Instant.ofEpochMilli(now),
       )
