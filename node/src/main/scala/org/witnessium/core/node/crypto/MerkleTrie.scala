@@ -77,7 +77,7 @@ object MerkleTrie {
                 .ensureSized[_16]
             )
             val branchHash = hash[MerkleTrieNode](branch)
-            EitherT.rightT[F, String](MerkleTrieState(
+            EitherT.rightT[F, String](state.copy(
               root = Some(branchHash),
               diff = state.diff.add(branchHash, branch).add(leaf0hash, leaf0).add(leaf1hash, leaf1).remove(root),
             ))
@@ -92,7 +92,7 @@ object MerkleTrie {
                     .ensureSized[_16]
                 )
                 val branchHash = hash[MerkleTrieNode](branch)
-                EitherT.rightT[F, String](MerkleTrieState(
+                EitherT.rightT[F, String](state.copy(
                   root = Some(branchHash),
                   diff = state.diff.add(branchHash, branch).add(leaf1hash, leaf1).remove(root),
                 ))
@@ -123,7 +123,7 @@ object MerkleTrie {
                 .ensureSized[_16]
             )
             val branchHash = hash[MerkleTrieNode](branch)
-            EitherT.rightT[F, String](MerkleTrieState(
+            EitherT.rightT[F, String](state.copy(
               root = Some(branchHash),
               diff = state.diff.add(branchHash, branch).add(branch00hash, branch00).add(leaf1hash, leaf1).remove(root),
             ))
@@ -171,7 +171,7 @@ object MerkleTrie {
                 )
                 val branchHash = hash[MerkleTrieNode](branch)
 
-                compact runS MerkleTrieState(
+                compact runS state.copy(
                   root = Some(branchHash),
                   diff = childState.diff.add(branchHash, branch).remove(root),
                 )
@@ -259,14 +259,14 @@ object MerkleTrie {
                   case MerkleTrieNode.Leaf(prefix0, value) =>
                     val nextLeaf = MerkleTrieNode.Leaf(getPrefix(prefix0), value)
                     val nextLeafHash = hash[MerkleTrieNode](nextLeaf)
-                    MerkleTrieState(
+                    state.copy(
                       root = Some(nextLeafHash),
                       diff = childState.diff.add(nextLeafHash, nextLeaf).remove(root),
                     )
                   case MerkleTrieNode.Branch(prefix0, children) =>
                     val nextBranch = MerkleTrieNode.Branch(getPrefix(prefix0), children)
                     val nextBranchHash = hash[MerkleTrieNode](nextBranch)
-                    MerkleTrieState(
+                    state.copy(
                       root = Some(nextBranchHash),
                       diff = childState.diff.add(nextBranchHash, nextBranch).remove(root),
                     )
@@ -296,13 +296,13 @@ object MerkleTrie {
     def apply[F[_]](implicit ns: NodeStore[F]): NodeStore[F] = ns
   }
 
-  final case class MerkleTrieState(root: Option[Hash], diff: MerkleTrieStateDiff)
+  final case class MerkleTrieState(root: Option[Hash], base: Option[Hash], diff: MerkleTrieStateDiff)
   final case class MerkleTrieStateDiff(addition: Map[Hash, MerkleTrieNode], removal: Set[Hash]) {
     def add(hash: Hash, node: MerkleTrieNode): MerkleTrieStateDiff = this.copy(addition = addition.updated(hash, node))
     def remove(hash: Hash): MerkleTrieStateDiff =
       if (addition contains hash) this.copy(addition = addition - hash) else this.copy(removal = removal + hash)
   }
   object MerkleTrieState {
-    val empty: MerkleTrieState = MerkleTrieState(None, MerkleTrieStateDiff(Map.empty, Set.empty))
+    val empty: MerkleTrieState = MerkleTrieState(None, None, MerkleTrieStateDiff(Map.empty, Set.empty))
   }
 }
