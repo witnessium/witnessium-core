@@ -9,7 +9,7 @@ import cats.implicits._
 import io.iteratee.Enumerator
 import scodec.bits.BitVector
 
-import datatype.MerkleTrieNode
+import datatype.{MerkleTrieNode, UInt256Bytes}
 import model.Address
 import MerkleTrie._
 import org.scalacheck.{Arbitrary, Gen}
@@ -20,7 +20,7 @@ import utest._
 object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
   implicit val emptyNodeStore: NodeStore[Id] = new NodeStore[Id] {
-    def get(hash: Hash): Either[String, Option[MerkleTrieNode]] = Right(None)
+    def get(hash: UInt256Bytes): Either[String, Option[MerkleTrieNode]] = Right(None)
   }
 
   val emptyState = MerkleTrieState.empty

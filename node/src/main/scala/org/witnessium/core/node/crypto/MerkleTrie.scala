@@ -16,7 +16,6 @@ import datatype.{MerkleTrieNode, UInt256Bytes}
 import org.witnessium.core.util.refined.bitVector._
 
 object MerkleTrie {
-  type Hash = UInt256Bytes
   
   @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
   def get[F[_]:NodeStore:Monad, A: ByteDecoder](
@@ -198,7 +197,7 @@ object MerkleTrie {
         case MerkleTrieNode.Branch(prefix, children) =>
 
           def runFrom(key: BitVector)(
-            hashWithIndex: (Option[Hash], Int)
+            hashWithIndex: (Option[UInt256Bytes], Int)
           ): EitherT[F, String, Enumerator[EitherT[F, String, *], (BitVector, A)]] = {
             from(key) runA state.copy(root = hashWithIndex._1) map (_.map{ case (key, a) =>
               (prefix.value ++ BitVector.fromInt(hashWithIndex._2, 4) ++ key, a)
@@ -215,7 +214,8 @@ object MerkleTrie {
           else if (!prefix.value.startsWith(key)) EitherT.rightT[F, String](Enumerator.empty)
           else {
             val (index1, key1) = key drop prefix.value.size splitAt 4L
-            val targetChildren: List[(Option[Hash], Int)] = children.unsized.toList.zipWithIndex.drop(index1.toInt(signed = false))
+            val targetChildren: List[(Option[UInt256Bytes], Int)] =
+              children.unsized.toList.zipWithIndex.drop(index1.toInt(signed = false))
             targetChildren match {
               case Nil => EitherT.rightT[F, String](Enumerator.empty)
               case x :: xs =>
@@ -298,17 +298,17 @@ object MerkleTrie {
   }
 
   trait NodeStore[F[_]] {
-    def get(hash: Hash): F[Either[String, Option[MerkleTrieNode]]]
+    def get(hash: UInt256Bytes): F[Either[String, Option[MerkleTrieNode]]]
   }
 
   object NodeStore {
     def apply[F[_]](implicit ns: NodeStore[F]): NodeStore[F] = ns
   }
 
-  final case class MerkleTrieState(root: Option[Hash], base: Option[Hash], diff: MerkleTrieStateDiff)
-  final case class MerkleTrieStateDiff(addition: Map[Hash, MerkleTrieNode], removal: Set[Hash]) {
-    def add(hash: Hash, node: MerkleTrieNode): MerkleTrieStateDiff = this.copy(addition = addition.updated(hash, node))
-    def remove(hash: Hash): MerkleTrieStateDiff =
+  final case class MerkleTrieState(root: Option[UInt256Bytes], base: Option[UInt256Bytes], diff: MerkleTrieStateDiff)
+  final case class MerkleTrieStateDiff(addition: Map[UInt256Bytes, MerkleTrieNode], removal: Set[UInt256Bytes]) {
+    def add(hash: UInt256Bytes, node: MerkleTrieNode): MerkleTrieStateDiff = this.copy(addition = addition.updated(hash, node))
+    def remove(hash: UInt256Bytes): MerkleTrieStateDiff =
       if (addition contains hash) this.copy(addition = addition - hash) else this.copy(removal = removal + hash)
   }
   object MerkleTrieState {
