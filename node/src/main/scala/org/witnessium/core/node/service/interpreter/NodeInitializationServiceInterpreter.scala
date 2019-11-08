@@ -36,7 +36,7 @@ class NodeInitializationServiceInterpreter(
           _ <- EitherT.right[String](state.unused.toList.traverse{
             case (address, txHash) => stateRepository.put(address, txHash)
           }.toIO)
-          _ <- EitherT.right[String](state.transactions.toList.traverse{transactionRepository.put}.toIO)
+          _ <- EitherT.right[String](state.transactions.toList.traverse{transactionRepository.put(_).value}.toIO)
         } yield block
       }
       _ <- EitherT(loop(block))

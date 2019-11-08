@@ -20,7 +20,7 @@ class BlockExplorerServiceInterpreter(
 ) extends BlockExplorerService[IO] {
 
   override def transaction(transactionHash: UInt256Bytes): IO[Either[String, Option[Transaction.Verifiable]]] = (for{
-    finalizedTransactionOption <- EitherT(transactionRepository.get(transactionHash))
+    finalizedTransactionOption <- transactionRepository.get(transactionHash)
     transactionOption <- finalizedTransactionOption.fold(EitherT{
       gossipRepository.newTransaction(transactionHash)
     })(t => EitherT.rightT(Some(t)))
@@ -29,7 +29,7 @@ class BlockExplorerServiceInterpreter(
   override def unused(address: Address): IO[Either[String, Seq[Transaction.Verifiable]]] = (for {
     transactionHashes <- EitherT(stateRepository.get(address))
     transactions <- transactionHashes.toList.traverse(transactionHash => for {
-      transactionOption <- EitherT(transactionRepository.get(transactionHash))
+      transactionOption <- transactionRepository.get(transactionHash)
       transaction <- EitherT.fromOption[SwayIO](transactionOption, s"Fail to find transaction $transactionHash")
     } yield transaction)
   } yield transactions).value.toIO

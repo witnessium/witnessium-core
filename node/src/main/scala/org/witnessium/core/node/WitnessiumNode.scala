@@ -30,7 +30,7 @@ import client.GossipClient
 import client.interpreter.GossipClientInterpreter
 import datatype.{BigNat, Confidential, UInt256Bytes, UInt256Refine}
 import endpoint.{BlockEndpoint, GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
-import model.{Address, NetworkId}
+import model.{Address, NetworkId, Transaction}
 import repository._
 import repository.interpreter._
 import service._
@@ -87,7 +87,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     swayDb(Paths.get("sway", "state"))
   )
 
-  val transactionRepository: TransactionRepository[SwayIO] = new TransactionRepositoryInterpreter(
+  val transactionRepository: TransactionRepository[SwayIO] = new HashStoreSwayInterpreter[Transaction.Verifiable](
     swayDb(Paths.get("sway", "transaction"))
   )
 

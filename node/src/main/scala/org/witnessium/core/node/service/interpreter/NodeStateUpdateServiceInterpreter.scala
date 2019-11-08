@@ -41,7 +41,7 @@ class NodeStateUpdateServiceInterpreter(
         hash => EitherT(gossipRepository.newTransaction(hash))
       }
       _ <- transactions.flatMap(_.toList).traverse{
-        tx => EitherT(transactionRepository.put(tx))
+        tx => transactionRepository.put(tx)
       }
       _ <- EitherT.right[String](gossipRepository.putNewBlockSuggestion(block.header, block.transactionHashes))
       _ <- EitherT.right[String](gossipRepository.finalizeBlock(blockHash))

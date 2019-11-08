@@ -61,7 +61,7 @@ class GenesisBlockSetupServiceInterpreter(
 
     NonEmptyList.of(
       stateService.put(state),
-      transactionRepository.put(Genesis(transaction)),
+      transactionRepository.put(Genesis(transaction)).value,
       blockRepository.put(genesisBlock),
     ).sequence.map(_ => ())
   }
