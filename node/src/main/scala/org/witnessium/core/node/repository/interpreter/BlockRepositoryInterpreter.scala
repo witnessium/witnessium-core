@@ -3,7 +3,7 @@ package node
 package repository
 package interpreter
 
-import cats.data.EitherT
+import cats.data.{EitherT, OptionT}
 import cats.implicits._
 import scodec.bits.ByteVector
 import swaydb.Map
@@ -22,6 +22,12 @@ class BlockRepositoryInterpreter(
 ) extends BlockRepository[IO] {
 
   private val BestHeaderKey: Array[Byte] = Array.fill(32)(0.toByte)
+
+  def get(blockHash: UInt256Bytes): EitherT[IO, String, Option[Block]] = (for {
+    header <- OptionT(getHeader(blockHash))
+    txHashes <-OptionT.liftF(getTransactionHashes(blockHash))
+    votes <- OptionT.liftF(getSignatures(blockHash))
+  } yield Block(header, txHashes.toSet, votes.toSet)).value
 
   def getHeader(blockHash: UInt256Bytes): EitherT[IO, String, Option[BlockHeader]] = for {
     arrayOption <- EitherT.right(swayHeaderMap.get(blockHash.toBytes.toArray))

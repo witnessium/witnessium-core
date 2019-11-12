@@ -2,19 +2,10 @@ package org.witnessium.core
 package node.repository
 
 import cats.data.EitherT
-import datatype.UInt256Bytes
-import model.{Block, BlockHeader, Signature}
+import model.{Block, BlockHeader}
 
-trait BlockRepository[F[_]] {
-
-  def getHeader(blockHash: UInt256Bytes): EitherT[F, String, Option[BlockHeader]]
+trait BlockRepository[F[_]] extends HashStore[F, Block] {
 
   def bestHeader: EitherT[F, String, BlockHeader]
-
-  def getTransactionHashes(blockHash: UInt256Bytes): EitherT[F, String, Seq[UInt256Bytes]]
-
-  def getSignatures(blockHash: UInt256Bytes): EitherT[F, String, Seq[Signature]]
-
-  def put(block: Block): EitherT[F, String, Unit]
 
 }

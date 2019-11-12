@@ -29,6 +29,4 @@ class HashStoreSwayInterpreter[A: ByteCodec: Hash](map: Map[Array[Byte], Array[B
     bytes <- EitherT.pure[SwayIO, String](ByteEncoder[A].encode(a))
     _ <- EitherT.liftF[SwayIO, String, Unit](map.put(a.toHash.toArray, bytes.toArray).map(_ => ()))
   } yield ()
-
-  def remove(hash: UInt256Bytes): SwayIO[Unit] = map.remove(hash.toArray).map(_ => ())
 }

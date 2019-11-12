@@ -3,7 +3,6 @@ package node
 package service
 package interpreter
 
-import cats.data.OptionT
 import cats.effect.IO
 import swaydb.data.{IO => SwayIO}
 import datatype.UInt256Bytes
@@ -35,9 +34,5 @@ class LocalGossipServiceInterpreter(
 
   override def state(stateRoot: UInt256Bytes): IO[Either[String, Option[State]]] = ???
 
-  override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = (for {
-    blockHeader <- OptionT(blockRepository.getHeader(blockHash))
-    transactionHashes <- OptionT.liftF(blockRepository.getTransactionHashes(blockHash))
-    votes <- OptionT.liftF(blockRepository.getSignatures(blockHash))
-  } yield Block(blockHeader, transactionHashes.toSet, votes.toSet)).value.value.toIO
+  override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = blockRepository.get(blockHash).value.toIO
 }

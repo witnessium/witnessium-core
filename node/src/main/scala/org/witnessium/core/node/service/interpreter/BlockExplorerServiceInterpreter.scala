@@ -34,11 +34,5 @@ class BlockExplorerServiceInterpreter(
     } yield transaction)
   } yield transactions).value.toIO
 
-  override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = (for{
-    blockHeaderOption <- blockRepository.getHeader(blockHash)
-    blockOption <- blockHeaderOption.fold(EitherT.pure[SwayIO, String](Option.empty[Block]))(blockHeader => for {
-      transactionHashes <-blockRepository.getTransactionHashes(blockHash)
-      signatures <-blockRepository.getSignatures(blockHash)
-    } yield Some(Block(blockHeader, transactionHashes.toSet, signatures.toSet)))
-  } yield blockOption).value.toIO
+  override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = blockRepository.get(blockHash).value.toIO
 }
