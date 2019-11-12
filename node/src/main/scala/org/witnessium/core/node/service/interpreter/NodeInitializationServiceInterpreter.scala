@@ -46,7 +46,7 @@ class NodeInitializationServiceInterpreter(
   @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
   def loop(currentBlock: Block): IO[Either[String, Unit]] = IO.suspend{
     if (currentBlock.header.number.value === BigInt(0)) EitherT.rightT[IO, String](()).value else {
-      blockRepository.put(currentBlock).toIO *> IO.cancelBoundary *> (for {
+      blockRepository.put(currentBlock).value.toIO *> IO.cancelBoundary *> (for {
         localBlockOption <- EitherT(localGossipService.block(currentBlock.header.parentHash).toIO)
         block <- EitherT.fromOptionF(OptionT.fromOption[IO](localBlockOption).orElse(
           OptionT(peerConnectionService.block(currentBlock.header.parentHash).toIO)

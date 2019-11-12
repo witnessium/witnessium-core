@@ -3,7 +3,7 @@ package node
 package repository
 package interpreter
 
-import cats.data.OptionT
+import cats.data.EitherT
 import cats.implicits._
 import scodec.bits.ByteVector
 import swaydb.Map
@@ -12,6 +12,7 @@ import swaydb.data.IO
 import codec.byte.{ByteDecoder, ByteEncoder}
 import datatype.UInt256Bytes
 import model.{Block, BlockHeader, Signature}
+import util.SwayIOCats._
 
 class BlockRepositoryInterpreter(
   swayBestHeaderMap: Map[Array[Byte], Array[Byte], IO],
@@ -22,21 +23,27 @@ class BlockRepositoryInterpreter(
 
   private val BestHeaderKey: Array[Byte] = Array.fill(32)(0.toByte)
 
-  def getHeader(blockHash: UInt256Bytes): IO[Either[String, Option[BlockHeader]]] = {
-    swayHeaderMap.get(blockHash.toArray).map(bytesOption => (for {
-      bytes <- OptionT.fromOption[Either[String, *]](bytesOption)
-      decoded <- OptionT.liftF(ByteDecoder[BlockHeader].decode(ByteVector.view(bytes)))
-    } yield decoded.value).value)
+  def getHeader(blockHash: UInt256Bytes): EitherT[IO, String, Option[BlockHeader]] = for {
+    arrayOption <- EitherT.right(swayHeaderMap.get(blockHash.toBytes.toArray))
+    decodeResult <- arrayOption.traverse{ array =>
+      EitherT.fromEither[IO](
+        ByteDecoder[BlockHeader].decode(ByteVector.view(array))
+      )
+    }
+  } yield decodeResult.map(_.value)
+
+  def bestHeader: EitherT[IO, String, BlockHeader] = (for {
+    arrayOption <- EitherT.right(swayBestHeaderMap.get(BestHeaderKey))
+    decodeResult <- arrayOption.traverse{ array =>
+      EitherT.fromEither[IO](
+        ByteDecoder[BlockHeader].decode(ByteVector.view(array))
+      )
+    }
+  } yield decodeResult.map(_.value)).flatMap{ headerOption =>
+    EitherT.fromOption(headerOption, "Do not exist best block header")
   }
 
-  def bestHeader: IO[Either[String, BlockHeader]] = swayBestHeaderMap.get(BestHeaderKey).map{ bytesOption =>
-    for {
-      bytes <- bytesOption.toRight("Do not exist best block header")
-      decoded <- ByteDecoder[BlockHeader].decode(ByteVector.view(bytes))
-    } yield decoded.value
-  }
-
-  def getTransactionHashes(blockHash: UInt256Bytes): IO[Either[String, Seq[UInt256Bytes]]] = {
+  def getTransactionHashes(blockHash: UInt256Bytes): EitherT[IO, String, Seq[UInt256Bytes]] = EitherT{
     swayTransactionsMap.get(blockHash.toArray).map { bytesOption =>
       for {
         bytes <- bytesOption.toRight(s"Do not exist block transactions: $blockHash")
@@ -45,7 +52,7 @@ class BlockRepositoryInterpreter(
     }
   }
 
-  def getSignatures(blockHash: UInt256Bytes): IO[Either[String, Seq[Signature]]] = {
+  def getSignatures(blockHash: UInt256Bytes): EitherT[IO, String, Seq[Signature]] = EitherT{
     swaySignaturesMap.get(blockHash.toArray).map { bytesOption =>
       for {
         bytes <- bytesOption.toRight(s"Do not exist block signatures: $blockHash")
@@ -54,11 +61,11 @@ class BlockRepositoryInterpreter(
     }
   }
 
-  def put(block: Block): IO[Unit] = {
+  def put(block: Block): EitherT[IO, String, Unit] = {
     val blockHeaderArray = ByteEncoder[BlockHeader].encode(block.header).toArray
     val blockHash = crypto.keccak256(blockHeaderArray)
-    for {
-      bestHeaderEither <- bestHeader
+    EitherT.right[String](for {
+      bestHeaderEither <- bestHeader.value
       _ <- bestHeaderEither match {
         case Right(bestHeaderValue) if block.header.number.value <= bestHeaderValue.number.value => IO.unit
         case _ => swayBestHeaderMap.put(BestHeaderKey, blockHeaderArray)
@@ -68,7 +75,7 @@ class BlockRepositoryInterpreter(
         ByteEncoder[List[UInt256Bytes]].encode(block.transactionHashes.toList).toArray)
       _ <- swaySignaturesMap.put(blockHash,
         ByteEncoder[List[Signature]].encode(block.votes.toList).toArray)
-    } yield ()
+    } yield ())
   }
 
   def close(): IO[Unit] = for {

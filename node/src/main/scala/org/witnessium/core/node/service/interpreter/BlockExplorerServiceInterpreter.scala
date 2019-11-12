@@ -35,10 +35,10 @@ class BlockExplorerServiceInterpreter(
   } yield transactions).value.toIO
 
   override def block(blockHash: UInt256Bytes): IO[Either[String, Option[Block]]] = (for{
-    blockHeaderOption <- EitherT(blockRepository.getHeader(blockHash))
+    blockHeaderOption <- blockRepository.getHeader(blockHash)
     blockOption <- blockHeaderOption.fold(EitherT.pure[SwayIO, String](Option.empty[Block]))(blockHeader => for {
-      transactionHashes <-EitherT(blockRepository.getTransactionHashes(blockHash))
-      signatures <-EitherT(blockRepository.getSignatures(blockHash))
+      transactionHashes <-blockRepository.getTransactionHashes(blockHash)
+      signatures <-blockRepository.getSignatures(blockHash)
     } yield Some(Block(blockHeader, transactionHashes.toSet, signatures.toSet)))
   } yield blockOption).value.toIO
 }

@@ -4,7 +4,7 @@ package service
 package interpreter
 
 import java.time.Instant
-import cats.data.NonEmptyList
+import cats.data.{EitherT, NonEmptyList}
 import cats.implicits._
 import eu.timepit.refined.refineMV
 import eu.timepit.refined.numeric.NonNegative
@@ -60,9 +60,9 @@ class GenesisBlockSetupServiceInterpreter(
     scribe.info(s"Genesis Block: $genesisBlock")
 
     NonEmptyList.of(
-      stateService.put(state),
-      transactionRepository.put(Genesis(transaction)).value,
+      EitherT.right[String](stateService.put(state)),
+      transactionRepository.put(Genesis(transaction)),
       blockRepository.put(genesisBlock),
-    ).sequence.map(_ => ())
+    ).map(_.value).sequence.map(_ => ())
   }
 }

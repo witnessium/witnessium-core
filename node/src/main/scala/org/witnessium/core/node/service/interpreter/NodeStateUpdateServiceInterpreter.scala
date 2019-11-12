@@ -45,7 +45,7 @@ class NodeStateUpdateServiceInterpreter(
       }
       _ <- EitherT.right[String](gossipRepository.putNewBlockSuggestion(block.header, block.transactionHashes))
       _ <- EitherT.right[String](gossipRepository.finalizeBlock(blockHash))
-      _ <- EitherT.right[String](blockRepository.put(block))
+      _ <- blockRepository.put(block)
     } yield ()).value
   }.toIO *> IO.unit
 }

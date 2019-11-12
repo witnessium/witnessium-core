@@ -41,7 +41,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
   val tests = Tests {
     test("getHeader from empty repository") - withNewRepo { repo =>
       for {
-        headerEither <- repo.getHeader(blockHash)
+        headerEither <- repo.getHeader(blockHash).value
       } yield {
         assert(headerEither === Right(None))
       }
@@ -49,7 +49,7 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("getBestHeader from empty repository") - withNewRepo { repo =>
       for {
-        headerEither <- repo.bestHeader
+        headerEither <- repo.bestHeader.value
       } yield {
         assert(headerEither === Left("Do not exist best block header"))
       }
@@ -57,8 +57,8 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("put and getHeader") - withNewRepo { repo =>
       for {
-        _ <- repo.put(block)
-        headerEither <- repo.getHeader(blockHash)
+        _ <- repo.put(block).value
+        headerEither <- repo.getHeader(blockHash).value
       } yield {
         assert(headerEither === Right(Some(block.header)))
       }
@@ -66,8 +66,8 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("put and bestHeader") - withNewRepo { repo =>
       for {
-        _ <- repo.put(block)
-        headerEither <- repo.bestHeader
+        _ <- repo.put(block).value
+        headerEither <- repo.bestHeader.value
       } yield {
         assert(headerEither === Right(block.header))
       }
@@ -75,8 +75,8 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("put and getTransactionHashes") - withNewRepo { repo =>
       for {
-        _ <- repo.put(block)
-        transactionHashesEither <- repo.getTransactionHashes(blockHash)
+        _ <- repo.put(block).value
+        transactionHashesEither <- repo.getTransactionHashes(blockHash).value
       } yield {
         assert(transactionHashesEither === Right(block.transactionHashes.toList))
       }
@@ -84,8 +84,8 @@ object BlockRepositoryInterpreterTest extends TestSuite with ModelArbitrary {
 
     test("put and getSignatures") - withNewRepo { repo =>
       for {
-        _ <- repo.put(block)
-        sigsEither <- repo.getSignatures(blockHash)
+        _ <- repo.put(block).value
+        sigsEither <- repo.getSignatures(blockHash).value
       } yield {
         assert(sigsEither === Right(block.votes.toList))
       }
