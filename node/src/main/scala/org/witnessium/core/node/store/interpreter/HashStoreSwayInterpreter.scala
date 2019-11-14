@@ -1,6 +1,6 @@
 package org.witnessium.core
 package node
-package repository
+package store
 package interpreter
 
 import cats.data.EitherT

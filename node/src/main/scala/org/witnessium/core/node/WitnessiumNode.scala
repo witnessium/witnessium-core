@@ -30,11 +30,13 @@ import client.GossipClient
 import client.interpreter.GossipClientInterpreter
 import datatype.{BigNat, Confidential, UInt256Bytes, UInt256Refine}
 import endpoint.{BlockEndpoint, GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
-import model.{Address, NetworkId, Transaction}
+import model.{Address, Block, BlockHeader, NetworkId, Transaction}
 import repository._
 import repository.interpreter._
 import service._
 import service.interpreter._
+import store.{HashStore, SingleValueStore}
+import store.interpreter.{HashStoreSwayInterpreter, SingleValueStoreSwayInterpreter}
 import util.{EncodeException, ServingHtml}
 import util.SwayIOCats._
 import view.Index
@@ -69,12 +71,14 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   def swayDb(dir: Path): swaydb.Map[Array[Byte], Array[Byte], SwayIO] = swaydb.persistent.Map(dir).get
   def swayInmemoryDb: swaydb.Map[Array[Byte], Array[Byte], SwayIO] = swaydb.memory.Map().get
 
-  val blockRepository: BlockRepository[SwayIO] = new BlockRepositoryInterpreter(
-    swayBestHeaderMap = swayDb(Paths.get("sway", "block", "best-header")),
-    swayHeaderMap = swayDb(Paths.get("sway", "block", "header")),
-    swayTransactionsMap = swayDb(Paths.get("sway", "block", "transaction")),
-    swaySignaturesMap = swayDb(Paths.get("sway", "block", "signature")),
+  implicit val bestBlockHeaderStore: SingleValueStore[SwayIO, BlockHeader] = new SingleValueStoreSwayInterpreter[BlockHeader](
+    swayDb(Paths.get("sway","block", "best-header"))
   )
+  implicit val blockHashStore: HashStore[SwayIO, Block] = new HashStoreSwayInterpreter[Block](
+    swayDb(Paths.get("sway", "block"))
+  )
+
+  val blockRepository: BlockRepository[SwayIO] = implicitly[BlockRepository[SwayIO]]
 
   val gossipRepository: GossipRepository[SwayIO] = new GossipRepositoryInterpreter(
     genesisHashRef = Ref.unsafe[SwayIO, UInt256Bytes](UInt256Refine.EmptyBytes),

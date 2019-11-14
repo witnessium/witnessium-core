@@ -1,6 +1,6 @@
 package org.witnessium.core
 package node
-package repository
+package store
 
 import cats.data.EitherT
 import datatype.UInt256Bytes
