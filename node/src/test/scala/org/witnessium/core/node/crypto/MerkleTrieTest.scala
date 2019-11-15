@@ -1,5 +1,6 @@
 package org.witnessium.core
-package node.crypto
+package node
+package crypto
 
 import scala.util.Random
 
@@ -15,12 +16,14 @@ import MerkleTrie._
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.rng.Seed
 import model.ModelArbitrary
+import store.HashStore
 import utest._
 
 object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
-  implicit val emptyNodeStore: NodeStore[Id] = new NodeStore[Id] {
-    def get(hash: UInt256Bytes): Either[String, Option[MerkleTrieNode]] = Right(None)
+  implicit val emptyNodeStore: NodeStore[Id] = new HashStore[Id, MerkleTrieNode] {
+    def get(hash: UInt256Bytes): EitherT[Id, String, Option[MerkleTrieNode]] = EitherT.pure(None)
+    def put(node: MerkleTrieNode): EitherT[Id, String, Unit] = EitherT.pure(())
   }
 
   val emptyState = MerkleTrieState.empty

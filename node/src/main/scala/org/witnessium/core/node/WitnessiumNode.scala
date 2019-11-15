@@ -107,8 +107,6 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    *  Setup Services
    ****************************************/
 
-  val stateService: StateService[SwayIO] = new StateServiceInterpreter(stateRepository)
-
   val nodeStateUpdateService: NodeStateUpdateService[IO] = new NodeStateUpdateServiceInterpreter(
     blockRepository, gossipRepository, transactionRepository
   )
@@ -138,7 +136,6 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     genesisInstant = genesisConfig.createdAt,
     initialDistribution = genesisConfig.initialDistribution,
     blockRepository = blockRepository,
-    stateService = stateService,
     transactionRepository = transactionRepository,
     gossipRepository = gossipRepository,
   )

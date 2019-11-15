@@ -13,10 +13,13 @@ import shapeless.nat._16
 import shapeless.syntax.sized._
 import codec.byte.{ByteDecoder, ByteEncoder, DecodeResult}
 import datatype.{MerkleTrieNode, UInt256Bytes}
+import store.HashStore
 import org.witnessium.core.util.refined.bitVector._
 
 object MerkleTrie {
-  
+
+  type NodeStore[F[_]] = HashStore[F,  MerkleTrieNode]
+
   @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
   def get[F[_]:NodeStore:Monad, A: ByteDecoder](
     key: BitVector
@@ -236,7 +239,7 @@ object MerkleTrie {
       s"Merkle trie node is removed: $state"
     ))
     node <- nodeOption.fold[EitherT[F, String, MerkleTrieNode]]{
-      EitherT(NodeStore[F].get(root)).subflatMap[String, MerkleTrieNode]{
+      implicitly[NodeStore[F]].get(root).subflatMap[String, MerkleTrieNode]{
         _.toRight(s"Merkle trie node is not found: $state")
       }
     }(EitherT.rightT[F, String](_))
@@ -295,14 +298,6 @@ object MerkleTrie {
       if (xor.populationCount === 0L) bits.size <= that.size
       else ~(bits implies that).populationCount === 0L
     }
-  }
-
-  trait NodeStore[F[_]] {
-    def get(hash: UInt256Bytes): F[Either[String, Option[MerkleTrieNode]]]
-  }
-
-  object NodeStore {
-    def apply[F[_]](implicit ns: NodeStore[F]): NodeStore[F] = ns
   }
 
   final case class MerkleTrieState(root: Option[UInt256Bytes], base: Option[UInt256Bytes], diff: MerkleTrieStateDiff)
