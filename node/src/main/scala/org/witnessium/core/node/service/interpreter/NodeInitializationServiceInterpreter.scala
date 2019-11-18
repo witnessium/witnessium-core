@@ -19,9 +19,9 @@ class NodeInitializationServiceInterpreter(
   stateRepository: StateRepository[SwayIO],
   transactionRepository: TransactionRepository[SwayIO],
   blockRepository: BlockRepository[SwayIO],
-) extends NodeInitializationService[IO] {
+) {//extends NodeInitializationService[IO] {
 
-  override def initialize: IO[Either[String, Unit]] = {
+  def initialize: IO[Either[String, Unit]] = {
     for {
       _ <- EitherT.right[String](genesisBlockSetupService().toIO)
       localStatus <- EitherT(localGossipService.status.toIO)

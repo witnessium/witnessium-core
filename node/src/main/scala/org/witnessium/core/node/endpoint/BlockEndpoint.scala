@@ -8,14 +8,15 @@ import io.finch.catsEffect._
 
 import datatype.UInt256Bytes
 import model.Block
-import service.BlockExplorerService
+import repository.BlockRepository
 
-class BlockEndpoint(blockExplorerService: BlockExplorerService[IO]) {
+@SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
+class BlockEndpoint()(implicit blockRepository: BlockRepository[IO]) {
 
   val Get: Endpoint[IO, Block] = get("block" ::
     path[UInt256Bytes].withToString("{blockHash}")
   ) { (blockHash: UInt256Bytes) =>
-    blockExplorerService.block(blockHash).map {
+    blockRepository.get(blockHash).value.map {
       case Right(Some(block)) => Ok(block)
       case Right(None) => NotFound(new Exception(s"Not found: $blockHash"))
       case Left(errorMsg) =>

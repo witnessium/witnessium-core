@@ -1,3 +1,4 @@
+/*
 package org.witnessium.core
 package node
 package service
@@ -84,3 +85,4 @@ class BlockSuggestionServiceInterpreter(
     } yield ())
   } yield ()).value
 }
+ */

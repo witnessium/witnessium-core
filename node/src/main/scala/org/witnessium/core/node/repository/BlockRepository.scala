@@ -9,7 +9,7 @@ import model.{Block, BlockHeader}
 import store.{HashStore, SingleValueStore}
 
 trait BlockRepository[F[_]] {
-  def bestHeader: EitherT[F, String, BlockHeader]
+  def bestHeader: EitherT[F, String, Option[BlockHeader]]
   def get(hash: UInt256Bytes): EitherT[F, String, Option[Block]]
   def put(block: Block): EitherT[F, String, Unit]
 }
@@ -21,20 +21,18 @@ object BlockRepository {
     blockHashStore: HashStore[F, Block]
   ): BlockRepository[F] = new BlockRepository[F] {
 
-    def bestHeader: EitherT[F, String, BlockHeader] = for {
-      headerOption <- bestBlockHeaderStore.get
-      header <- EitherT.fromOption[F](headerOption, "Do not exist best block header")
-    } yield header
+    def bestHeader: EitherT[F, String, Option[BlockHeader]] = bestBlockHeaderStore.get
 
     def get(blockHash: UInt256Bytes): EitherT[F,String,Option[Block]] = blockHashStore.get(blockHash)
 
     def put(block: Block): EitherT[F,String,Unit] = for {
       _ <- blockHashStore.put(block)
-      bestHeaderOption <- bestBlockHeaderStore.get
+      bestHeaderOption <- bestHeader
       _ <- (bestHeaderOption match {
-        case Some(best) if best.number.value <=  block.header.number.value =>
+        case Some(best) if best.number.value >=  block.header.number.value =>
+          EitherT.pure[F, String](())
+        case _ => 
           bestBlockHeaderStore.put(block.header)
-        case _ => EitherT.pure[F, String](())
       })
     } yield ()
   }

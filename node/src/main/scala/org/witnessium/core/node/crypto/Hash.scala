@@ -25,6 +25,8 @@ object Hash {
 
   implicit val transactionHash: Hash[Transaction] = hash[Transaction]
   implicit def verifiableHash[A: Hash]: Hash[Verifiable[A]] = Hash[A].contraMap(_.value)
+  implicit def signedHash[A: Hash]: Hash[Signed[A]] = Hash[A].contraMap(_.value)
+  implicit def genesisHash[A: Hash]: Hash[Genesis[A]] = Hash[A].contraMap(_.value)
 
   implicit val merkleTrieNodeHash: Hash[MerkleTrieNode] = hash[MerkleTrieNode]
 

@@ -4,6 +4,8 @@ package service
 package interpreter
 
 import cats.effect.IO
+import eu.timepit.refined.refineMV
+import eu.timepit.refined.numeric.NonNegative
 import swaydb.data.{IO => SwayIO}
 import datatype.UInt256Bytes
 import model.{Block, GossipMessage, NetworkId, NodeStatus, State, Transaction}
@@ -19,11 +21,12 @@ class LocalGossipServiceInterpreter(
 
   override def status: IO[Either[String, NodeStatus]] = (for {
     bestBlockHeader <- blockRepository.bestHeader
+    genesisHash = gossipRepository.genesisHash
   } yield NodeStatus(
     networkId = networkId,
-    genesisHash = gossipRepository.genesisHash,
-    bestHash = crypto.hash(bestBlockHeader),
-    number = bestBlockHeader.number,
+    genesisHash = genesisHash,
+    bestHash = bestBlockHeader.fold(genesisHash)(crypto.hash),
+    number = bestBlockHeader.fold(refineMV[NonNegative](BigInt(0)))(_.number),
   )).value.toIO
 
   override def bloomfilter(bloomfilter: BloomFilter): IO[Either[String, GossipMessage]] = ???
