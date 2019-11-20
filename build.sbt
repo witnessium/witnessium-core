@@ -1,12 +1,13 @@
 lazy val finchVersion = "0.29.0"
 lazy val circeVersion = "0.11.1"
+lazy val monixVersion = "3.1.0"
 lazy val twitterVersion = "19.6.0"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
 lazy val scalatagsVersion = "0.6.8"
 lazy val refinedVersion = "0.9.9"
 lazy val iterateeVersion = "0.19.0-M4"
-lazy val swaydbVersion = "0.8-beta.8"
+lazy val swaydbVersion = "0.10.9"
 lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
 lazy val scalajsJavaTimeVersion = "0.2.5"
@@ -125,7 +126,7 @@ lazy val sharedSettings = Seq(
     "eu.timepit" %%% "refined" % refinedVersion,
     "eu.timepit" %% "refined-cats" % refinedVersion,
     "eu.timepit" %%% "refined-scodec" % refinedVersion,
-    "io.iteratee" %%% "iteratee-core" % iterateeVersion,
+    "io.monix" %% "monix-tail" % monixVersion,
     "com.lihaoyi" %%% "utest" % utestVersion % Test,
     "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
     "eu.timepit" %%% "refined-scalacheck" % refinedVersion % Test,
@@ -151,6 +152,7 @@ lazy val node = (project in file("node"))
       "io.catbird" %% "catbird-util" % twitterVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
       "io.swaydb" %% "swaydb" % swaydbVersion,
+      "io.swaydb" %% "monix" % swaydbVersion,
       "com.outr" %% "scribe-slf4j18" % scribeVersion,
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "eu.timepit" %% "refined-pureconfig" % refinedVersion,

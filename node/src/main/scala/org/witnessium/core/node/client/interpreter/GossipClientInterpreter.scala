@@ -15,7 +15,7 @@ import io.circe.syntax._
 
 import codec.circe._
 import datatype.UInt256Bytes
-import model.{Block, GossipMessage, NodeStatus, State, Transaction}
+import model.{Block, GossipMessage, NodeStatus, Transaction}
 import p2p.BloomFilter
 
 class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient[Future] {
@@ -59,21 +59,6 @@ class GossipClientInterpreter(hostname: String, port: Port) extends GossipClient
       parser.decode[Seq[Transaction.Verifiable]](response.contentString).left.map{ _ =>
         s"$response: ${response.contentString}"
       }
-    }
-  }
-
-  def state(stateRoot: UInt256Bytes): Future[Either[String, Option[State]]] = {
-    val request = Request(s"${ApiPath.gossip.state.toUrl}/${stateRoot.toHex}")
-    scribe.info(s"Gossip state request: $request")
-
-    for (response <- client(request)) yield {
-      scribe.info(s"Gossip state response: $response")
-      scribe.debug(s"Gossip state response body: ${response.contentString}")
-      if (response.statusCode === 404) Right(None) else OptionT.liftF{
-        parser.decode[State](response.contentString).left.map{ _ =>
-          s"$response: ${response.contentString}"
-        }
-      }.value
     }
   }
 

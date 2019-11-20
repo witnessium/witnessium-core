@@ -3,7 +3,7 @@ package node
 package client
 
 import datatype.UInt256Bytes
-import model.{Block, GossipMessage, NodeStatus, State, Transaction}
+import model.{Block, GossipMessage, NodeStatus, Transaction}
 import p2p.BloomFilter
 
 trait GossipClient[F[_]] {
@@ -13,8 +13,6 @@ trait GossipClient[F[_]] {
   def bloomfilter(bloomfilter: BloomFilter): F[Either[String, GossipMessage]]
 
   def unknownTransactions(transactionHashes: Seq[UInt256Bytes]): F[Either[String, Seq[Transaction.Verifiable]]]
-
-  def state(stateRoot: UInt256Bytes): F[Either[String, Option[State]]]
 
   def block(blockHash: UInt256Bytes): F[Either[String, Option[Block]]]
 

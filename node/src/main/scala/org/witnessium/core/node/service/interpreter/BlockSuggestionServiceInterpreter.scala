@@ -1,3 +1,4 @@
+/*
 package org.witnessium.core
 package node
 package service
@@ -54,7 +55,7 @@ class BlockSuggestionServiceInterpreter(
 
   @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
   def suggestBlock(implicit timer: Timer[IO]): IO[Either[String, Unit]] = (for {
-    bestBlockHeader <- EitherT(blockRepository.bestHeader.toIO)
+    bestBlockHeader <- EitherT(blockRepository.bestHeader.value.toIO)
     _ <- EitherT.pure[IO, String](scribe.info(s"Best block header: $bestBlockHeader"))
     newTransactions <- EitherT(gossipRepository.newTransactions.toIO)
     transactionHashes = newTransactions.map{ newTransaction => crypto.hash(newTransaction.value) }
@@ -84,3 +85,4 @@ class BlockSuggestionServiceInterpreter(
     } yield ())
   } yield ()).value
 }
+ */

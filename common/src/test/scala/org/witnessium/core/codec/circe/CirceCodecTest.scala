@@ -48,10 +48,6 @@ object CirceCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary
       successfulRoundTrip[Transaction.Verifiable].checkUTest()
     }
 
-    test("State"){
-      successfulRoundTrip[State].checkUTest()
-    }
-
     test("BlockHeader"){
       successfulRoundTrip[BlockHeader].checkUTest()
     }

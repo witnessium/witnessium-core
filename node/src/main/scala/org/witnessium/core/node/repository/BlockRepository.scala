@@ -1,21 +1,39 @@
 package org.witnessium.core
-package node.repository
+package node
+package repository
 
+import cats.Monad
+import cats.data.EitherT
 import datatype.UInt256Bytes
-import model.{Block, BlockHeader, Signature}
+import model.{Block, BlockHeader}
+import store.{HashStore, SingleValueStore}
 
 trait BlockRepository[F[_]] {
+  def bestHeader: EitherT[F, String, Option[BlockHeader]]
+  def get(hash: UInt256Bytes): EitherT[F, String, Option[Block]]
+  def put(block: Block): EitherT[F, String, Unit]
+}
 
-  def getHeader(blockHash: UInt256Bytes): F[Either[String, Option[BlockHeader]]]
+object BlockRepository {
 
-  def bestHeader: F[Either[String, BlockHeader]]
+  implicit def fromStores[F[_]: Monad](implicit
+    bestBlockHeaderStore: SingleValueStore[F, BlockHeader],
+    blockHashStore: HashStore[F, Block]
+  ): BlockRepository[F] = new BlockRepository[F] {
 
-  def getTransactionHashes(blockHash: UInt256Bytes): F[Either[String, Seq[UInt256Bytes]]]
+    def bestHeader: EitherT[F, String, Option[BlockHeader]] = bestBlockHeaderStore.get
 
-  def getSignatures(blockHash: UInt256Bytes): F[Either[String, Seq[Signature]]]
+    def get(blockHash: UInt256Bytes): EitherT[F,String,Option[Block]] = blockHashStore.get(blockHash)
 
-  def put(block: Block): F[Unit]
-
-  def close(): F[Unit]
-
+    def put(block: Block): EitherT[F,String,Unit] = for {
+      _ <- blockHashStore.put(block)
+      bestHeaderOption <- bestHeader
+      _ <- (bestHeaderOption match {
+        case Some(best) if best.number.value >=  block.header.number.value =>
+          EitherT.pure[F, String](())
+        case _ =>
+          bestBlockHeaderStore.put(block.header)
+      })
+    } yield ()
+  }
 }

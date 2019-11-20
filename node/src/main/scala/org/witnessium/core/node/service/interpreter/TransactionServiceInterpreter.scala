@@ -9,8 +9,8 @@ import model.{GossipMessage, Transaction}
 
 class TransactionServiceInterpreter(
   val gossipListener: GossipMessage => IO[Unit],
-) extends TransactionService[IO] {
-  override def submit(transaction: Transaction.Signed): IO[UInt256Bytes] = {
+) {// extends TransactionService[IO] {
+  def submit(transaction: Transaction.Signed): IO[UInt256Bytes] = {
     val gossipMessage = GossipMessage(
       blockSuggestions = Set.empty,
       blockVotes = Map.empty,

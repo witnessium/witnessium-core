@@ -39,11 +39,16 @@ package object crypto {
   }
 
   implicit class SignatureOps(val signature: Signature) extends AnyVal {
-    def signedMessageToKey(message: Array[Byte]): Either[String, BigInt] = {
+    def signedMessageToKey(message: Array[Byte]): Either[String, BigInt] =
+      signedMessageHashArrayToKey(keccak256(message))
+
+    def signedMessageHashToKey(hashValue: UInt256Bytes): Either[String, BigInt] =
+      signedMessageHashArrayToKey(hashValue.toArray)
+
+    def signedMessageHashArrayToKey(hashArray: Array[Byte]): Either[String, BigInt] = {
       val header = signature.v.value & 0xFF
-      val messageHash = keccak256(message)
       val recId = header - 27
-      recoverFromSignature(recId, signature.r, signature.s, messageHash)
+      recoverFromSignature(recId, signature.r, signature.s, hashArray)
         .toRight("Could not recover public key from signature")
     }
   }
