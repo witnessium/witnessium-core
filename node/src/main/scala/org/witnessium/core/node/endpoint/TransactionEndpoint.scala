@@ -11,6 +11,7 @@ import io.finch.catsEffect._
 
 import codec.circe._
 import crypto.KeyPair
+import crypto.MerkleTrie.NodeStore
 import datatype.UInt256Bytes
 import model.Transaction
 import repository.{BlockRepository, TransactionRepository}
@@ -23,6 +24,7 @@ class TransactionEndpoint(
   timer: Timer[IO],
   blockRepository: BlockRepository[IO],
   transactionRepository: TransactionRepository[IO],
+  nodeStore: NodeStore[IO],
 ) {
 
   val Get: Endpoint[IO, Transaction.Verifiable] = get("transaction" ::

@@ -11,7 +11,6 @@ import swaydb.Map
 import swaydb.data.{IO => SwayIO}
 
 import codec.byte.{ByteCodec, ByteDecoder, ByteEncoder}
-//import util.SwayIOCats._
 
 class SingleValueStoreSwayInterpreter[A: ByteCodec](map: Map[Array[Byte], Array[Byte], SwayIO]) extends SingleValueStore[IO, A] {
 

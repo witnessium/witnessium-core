@@ -3,22 +3,22 @@ package node
 package crypto
 
 import cats.Monad
-import cats.data.{EitherT, StateT}
+import cats.data.{EitherT, Kleisli, StateT}
+import cats.effect.Sync
 import cats.implicits._
 import eu.timepit.refined.refineV
 import eu.timepit.refined.api.Refined
-import io.iteratee.Enumerator
+import monix.tail.Iterant
 import scodec.bits.BitVector
 import shapeless.nat._16
 import shapeless.syntax.sized._
 import codec.byte.{ByteDecoder, ByteEncoder, DecodeResult}
 import datatype.{MerkleTrieNode, UInt256Bytes}
-import store.HashStore
 import org.witnessium.core.util.refined.bitVector._
 
 object MerkleTrie {
 
-  type NodeStore[F[_]] = HashStore[F,  MerkleTrieNode]
+  type NodeStore[F[_]] = Kleisli[EitherT[F, String, *],  UInt256Bytes, Option[MerkleTrieNode]]
 
   @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
   def get[F[_]:NodeStore:Monad, A: ByteDecoder](
@@ -134,11 +134,8 @@ object MerkleTrie {
       }
   })
 
-  def remove[F[_]: NodeStore: Monad, A: ByteEncoder: ByteDecoder](value: A): StateT[EitherT[F, String, *], MerkleTrieState, Unit] =
-    removeByKey(crypto.hash(value).bits)
-
   @SuppressWarnings(Array("org.wartremover.warts.Recursion","org.wartremover.warts.NonUnitStatements"))
-  def removeByKey[F[_]: NodeStore: Monad, A: ByteDecoder](
+  def removeByKey[F[_]: NodeStore: Monad](
     key: BitVector
   ): StateT[EitherT[F, String, *], MerkleTrieState, Unit] = StateT.modifyF((state: MerkleTrieState) => state.root match {
     case None => EitherT.leftT[F, MerkleTrieState](s"Fail to remove element from empty merkle trie: $state")
@@ -185,47 +182,47 @@ object MerkleTrie {
   })
 
   @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
-  def from[F[_]:NodeStore:Monad, A: ByteDecoder](
+  def from[F[_]:NodeStore:Sync, A: ByteDecoder](
     key: BitVector
-  ): StateT[EitherT[F, String, *], MerkleTrieState, Enumerator[EitherT[F, String, *], (BitVector, A)]] = {
+  ): StateT[EitherT[F, String, *], MerkleTrieState, Iterant[EitherT[F, String, *], (BitVector, A)]] = {
     StateT.inspectF((state: MerkleTrieState) => state.root match {
-      case None => EitherT.rightT[F, String](Enumerator.empty)
+      case None => EitherT.rightT[F, String](Iterant.empty)
       case Some(_) => getNode(state).flatMap{
         case MerkleTrieNode.Leaf(prefix, value) =>
           if (key <= prefix.value) EitherT.fromEither[F](ByteDecoder[A].decode(value).flatMap{
-            case DecodeResult(v, remainder) if remainder.isEmpty => Right(Enumerator.enumOne((prefix.value, v)))
+            case DecodeResult(v, remainder) if remainder.isEmpty => Right(Iterant.now((prefix.value, v)))
             case result => Left(s"Decoding failure: nonEmpty remainder $result")
           })
-          else EitherT.rightT[F, String](Enumerator.empty)
+          else EitherT.rightT[F, String](Iterant.empty)
         case MerkleTrieNode.Branch(prefix, children) =>
 
           def runFrom(key: BitVector)(
             hashWithIndex: (Option[UInt256Bytes], Int)
-          ): EitherT[F, String, Enumerator[EitherT[F, String, *], (BitVector, A)]] = {
+          ): EitherT[F, String, Iterant[EitherT[F, String, *], (BitVector, A)]] = {
             from(key) runA state.copy(root = hashWithIndex._1) map (_.map{ case (key, a) =>
               (prefix.value ++ BitVector.fromInt(hashWithIndex._2, 4) ++ key, a)
             })
           }
 
           def flatten(
-            enums: List[Enumerator[EitherT[F, String, *], (BitVector, A)]]
-          ): Enumerator[EitherT[F, String, *], (BitVector, A)] = {
-            (Enumerator.empty[EitherT[F, String, *], (BitVector, A)] /: enums)(_ append _)
+            enums: List[Iterant[EitherT[F, String, *], (BitVector, A)]]
+          ): Iterant[EitherT[F, String, *], (BitVector, A)] = {
+            (Iterant.empty[EitherT[F, String, *], (BitVector, A)] /: enums)(_ ++ _)
           }
 
           if (key <= prefix.value) children.unsized.toList.zipWithIndex traverse runFrom(BitVector.empty) map flatten
-          else if (!prefix.value.startsWith(key)) EitherT.rightT[F, String](Enumerator.empty)
+          else if (!prefix.value.startsWith(key)) EitherT.rightT[F, String](Iterant.empty)
           else {
             val (index1, key1) = key drop prefix.value.size splitAt 4L
             val targetChildren: List[(Option[UInt256Bytes], Int)] =
               children.unsized.toList.zipWithIndex.drop(index1.toInt(signed = false))
             targetChildren match {
-              case Nil => EitherT.rightT[F, String](Enumerator.empty)
+              case Nil => EitherT.rightT[F, String](Iterant.empty)
               case x :: xs =>
                 for {
                   headList <- runFrom(key1)(x)
                   tailList <- xs traverse runFrom(BitVector.empty)
-              } yield headList append flatten(tailList)
+              } yield headList ++ flatten(tailList)
             }
           }
       }
@@ -239,7 +236,7 @@ object MerkleTrie {
       s"Merkle trie node is removed: $state"
     ))
     node <- nodeOption.fold[EitherT[F, String, MerkleTrieNode]]{
-      implicitly[NodeStore[F]].get(root).subflatMap[String, MerkleTrieNode]{
+      implicitly[NodeStore[F]].run(root).subflatMap[String, MerkleTrieNode]{
         _.toRight(s"Merkle trie node is not found: $state")
       }
     }(EitherT.rightT[F, String](_))
@@ -308,5 +305,7 @@ object MerkleTrie {
   }
   object MerkleTrieState {
     val empty: MerkleTrieState = MerkleTrieState(None, None, MerkleTrieStateDiff(Map.empty, Set.empty))
+    def fromRoot(root: UInt256Bytes): MerkleTrieState =
+      MerkleTrieState(root = Some(root), base = Some(root), diff = MerkleTrieStateDiff(Map.empty, Set.empty))
   }
 }

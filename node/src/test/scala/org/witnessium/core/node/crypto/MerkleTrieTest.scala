@@ -4,26 +4,44 @@ package crypto
 
 import scala.util.Random
 
-import cats.{Id, Monad}
-import cats.data.{EitherT, StateT}
+import cats.Id
+import cats.data.{EitherT, Kleisli, StateT}
+import cats.effect.Sync
 import cats.implicits._
-import io.iteratee.Enumerator
+import monix.tail.Iterant
 import scodec.bits.BitVector
 
-import datatype.{MerkleTrieNode, UInt256Bytes}
+import datatype.UInt256Bytes
 import model.Address
 import MerkleTrie._
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.rng.Seed
 import model.ModelArbitrary
-import store.HashStore
 import utest._
 
 object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
-  implicit val emptyNodeStore: NodeStore[Id] = new HashStore[Id, MerkleTrieNode] {
-    def get(hash: UInt256Bytes): EitherT[Id, String, Option[MerkleTrieNode]] = EitherT.pure(None)
-    def put(node: MerkleTrieNode): EitherT[Id, String, Unit] = EitherT.pure(())
+  implicit val emptyNodeStore: NodeStore[Id] = Kleisli{ (_: UInt256Bytes) => EitherT.pure(None) }
+
+  implicit val idSync: Sync[Id] = new Sync[Id] {
+
+    // Members declared in cats.Applicative
+    def pure[A](x: A): Id[A] = x
+
+    // Members declared in cats.ApplicativeError
+    def handleErrorWith[A](fa: Id[A])(f: Throwable => Id[A]): Id[A] = fa
+    def raiseError[A](e: Throwable): cats.Id[A] = throw new Exception(e)
+
+    // Members declared in cats.effect.Bracket
+    def bracketCase[A, B](acquire: Id[A])(use: A => Id[B])
+      (release: (A, cats.effect.ExitCase[Throwable]) => Id[Unit]): Id[B] = use(acquire)
+
+    // Members declared in cats.FlatMap
+    def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = cats.FlatMap[Id].flatMap(fa)(f)
+    def tailRecM[A, B](a: A)(f: A => Id[Either[A,B]]): Id[B] = cats.FlatMap[Id].tailRecM(a)(f)
+
+    // Members declared in cats.effect.Sync
+    def suspend[A](thunk: => Id[A]): Id[A] = thunk
   }
 
   val emptyState = MerkleTrieState.empty
@@ -35,11 +53,9 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
   }
   val (sampleKey, sampleValue) = sample
 
-  def enumeratorToList[F[_]: Monad, A](
-    enumerator: Enumerator[EitherT[F, String, *], A]
-  ): StateT[EitherT[F, String, *], MerkleTrieState, List[A]] = StateT.liftF(
-    enumerator.toVector.map(_.toList)
-  )
+  def iterantToList[F[_]: Sync, A](
+    iterant: Iterant[EitherT[F, String, *], A]
+  ): StateT[EitherT[F, String, *], MerkleTrieState, List[A]] = StateT.liftF(iterant.toListL)
 
   val tests = Tests {
     test("get from empty"){
@@ -67,8 +83,8 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
       val program = for {
         _ <- samples.traverse{ case (k, v) => put[Id, Address](k, v)}
-        resultEnumerator <- from[Id, Address](BitVector.empty)
-        resultValue <- enumeratorToList(resultEnumerator)
+        resultIterant <- from[Id, Address](BitVector.empty)
+        resultValue <- iterantToList(resultIterant)
       } yield resultValue
       val result = (program run emptyState).map(_._2)
 
@@ -86,9 +102,9 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
       val program = for {
         _ <- put[Id, Address](sample1Hash, sample1)
         _ <- put[Id, Address](sample2Hash, sample2)
-        _ <- removeByKey[Id, Address](hash[Address](sample1).bits)
-        resultEnumerator <- from[Id, Address](BitVector.empty)
-        resultValue <- enumeratorToList(resultEnumerator)
+        _ <- removeByKey[Id](hash[Address](sample1).bits)
+        resultIterant <- from[Id, Address](BitVector.empty)
+        resultValue <- iterantToList(resultIterant)
       } yield resultValue
       val result = (program run emptyState).map(_._2)
 
@@ -108,9 +124,9 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
       val program = for {
         _ <- samples.traverse{ case (k, v) => put[Id, Address](k, v)}
-        _ <- removeByKey[Id, Address](samples.head._1)
-        resultEnumerator <- from[Id, Address](BitVector.empty)
-        resultValue <- enumeratorToList(resultEnumerator)
+        _ <- removeByKey[Id](samples.head._1)
+        resultIterant <- from[Id, Address](BitVector.empty)
+        resultValue <- iterantToList(resultIterant)
       } yield resultValue
       val result = (program run emptyState)
 
@@ -136,9 +152,9 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
       val program = for {
         _ <- samples.traverse{ case (k, v) => put[Id, Address](k, v)}
-        _ <- removeByKey[Id, Address](samples.head._1)
-        resultEnumerator <- from[Id, Address](BitVector.empty)
-        resultValue <- enumeratorToList(resultEnumerator)
+        _ <- removeByKey[Id](samples.head._1)
+        resultIterant <- from[Id, Address](BitVector.empty)
+        resultValue <- iterantToList(resultIterant)
       } yield resultValue
       val result = (program run emptyState).map(_._2)
 
@@ -166,17 +182,17 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
       val program = for {
         _ <- samples.traverse{ case (k, v) => put[Id, Address](k, v) }
-        _ <- toBeRemoved.traverse{ case (k, _) => removeByKey[Id, Address](k) }
-        resultEnumerator <- from[Id, Address](BitVector.empty)
-        resultValue <- enumeratorToList(resultEnumerator)
+        _ <- toBeRemoved.traverse{ case (k, _) => removeByKey[Id](k) }
+        resultIterant <- from[Id, Address](BitVector.empty)
+        resultValue <- iterantToList(resultIterant)
       } yield resultValue
       val result = (program run emptyState).map(_._1)
 
       val program2 = for {
         _ <- shuffled.traverse{ case (k, v) => put[Id, Address](k, v) }
-        _ <- toBeRemoved.traverse{ case (k, _) => removeByKey[Id, Address](k) }
-        resultEnumerator <- from[Id, Address](BitVector.empty)
-        resultValue <- enumeratorToList(resultEnumerator)
+        _ <- toBeRemoved.traverse{ case (k, _) => removeByKey[Id](k) }
+        resultIterant <- from[Id, Address](BitVector.empty)
+        resultValue <- iterantToList(resultIterant)
       } yield resultValue
       val result2 = (program2 run emptyState).map(_._1)
 

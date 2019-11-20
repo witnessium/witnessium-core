@@ -32,16 +32,19 @@ object console {
   implicit class KeyPairOps(val keyPair: KeyPair) extends AnyVal {
     def address: Address = Address.fromPublicKey(keccak256)(keyPair.publicKey)
 
-    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-    def sendTo(from: String, to: List[(Address, Long)]): Transaction.Verifiable = (for{
-      bytes <- ByteVector.fromHexDescriptive(from)
-      txHash <- UInt256Refine.from(bytes)
-      outputs <- to.traverse[Either[String, *], (Address, BigNat)]{ case (address, amount) =>
-        refineV[NonNegative](BigInt(amount)).map((address, _))
-      }
-      tx: Transaction = Transaction(networkId, Set(txHash), outputs.toSet)
-      sig <- keyPair.sign(crypto.keccak256(txEncoder.encode(tx).toArray))
-    } yield Signed(sig, tx)).toOption.get
+    def sendTo(txHex: String, to: List[(Address, Long)]): Transaction.Verifiable = {
+      val Right(signed) = for{
+        bytes <- ByteVector.fromHexDescriptive(txHex)
+        txHash <- UInt256Refine.from(bytes)
+        outputs <- to.traverse[Either[String, *], (Address, BigNat)]{ case (address, amount) =>
+          refineV[NonNegative](BigInt(amount)).map((address, _))
+        }
+        tx: Transaction = Transaction(networkId, Set(txHash), outputs.toSet)
+        sig <- keyPair.sign(crypto.keccak256(txEncoder.encode(tx).toArray))
+      } yield Signed(sig, tx)
+
+      signed
+    }
   }
 
   implicit class VerifiableTxOps(val vtx: Transaction.Verifiable) extends AnyVal {

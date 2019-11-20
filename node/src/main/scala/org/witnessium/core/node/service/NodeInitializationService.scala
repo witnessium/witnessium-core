@@ -7,17 +7,22 @@ import cats.data.EitherT
 import cats.effect.Concurrent
 
 import crypto.Hash.ops._
-import datatype.UInt256Bytes
+import crypto.MerkleTrie.MerkleTrieState
+import datatype.{MerkleTrieNode, UInt256Bytes}
 import model.{Block, Transaction}
-import repository.{BlockRepository, TransactionRepository}
+import repository.{BlockRepository, StateRepository, TransactionRepository}
+import StateRepository._
+import store.HashStore
 
 object NodeInitializationService {
 
   def putGenesisBlockAndTransaction[F[_]: Concurrent: BlockRepository: TransactionRepository](
     genesisBlock: Block,
+    genesisState: MerkleTrieState,
     genesisTransaction: Transaction.Verifiable,
-  ): EitherT[F, String, Unit] = (for {
+  )(implicit hashStore: HashStore[F, MerkleTrieNode]): EitherT[F, String, Unit] = (for {
     _ <- implicitly[BlockRepository[F]].put(genesisBlock)
+    _ <- StateRepository.put[F](genesisState)
     _ <- implicitly[TransactionRepository[F]].put(genesisTransaction)
   } yield ())
 
@@ -39,16 +44,24 @@ object NodeInitializationService {
     }
   } yield result
 
-  def initialize[F[_]: Concurrent: Monad: BlockRepository: TransactionRepository] (
-    genesisBlock:Block,
+  def initialize[F[_]: Concurrent: BlockRepository: TransactionRepository] (
+    genesisBlock: Block,
+    genesisState: MerkleTrieState,
     genesisTransaction: Transaction.Verifiable,
-  ): EitherT[F, String, Unit] = for {
+  )(implicit hashStore: HashStore[F, MerkleTrieNode]): EitherT[F, String, Unit] = for {
     bestBlockHeaderOption <- implicitly[BlockRepository[F]].bestHeader
     _ <- bestBlockHeaderOption match {
       case None =>
-        putGenesisBlockAndTransaction(genesisBlock, genesisTransaction)
+        putGenesisBlockAndTransaction(genesisBlock, genesisState, genesisTransaction)
       case Some(bestBlockHeader) =>
         checkSavedGenesis(bestBlockHeader.number.value, bestBlockHeader.toHash, genesisBlock)
     }
-  } yield ()
+    bestBlockHeaderOption2 <- implicitly[BlockRepository[F]].bestHeader
+    bestBlockHeader <- EitherT.fromOption[F](bestBlockHeaderOption2, s"Empty best block header")
+    allStates <- MerkleTrieState.fromRoot(bestBlockHeader.stateRoot).getAll
+  } yield {
+    allStates.foreach{ case (address, txHash) =>
+      scribe.info(s"Current state: $address : $txHash")
+    }
+  }
 }

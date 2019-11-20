@@ -1,5 +1,6 @@
 lazy val finchVersion = "0.29.0"
 lazy val circeVersion = "0.11.1"
+lazy val monixVersion = "3.1.0"
 lazy val twitterVersion = "19.6.0"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
@@ -125,7 +126,7 @@ lazy val sharedSettings = Seq(
     "eu.timepit" %%% "refined" % refinedVersion,
     "eu.timepit" %% "refined-cats" % refinedVersion,
     "eu.timepit" %%% "refined-scodec" % refinedVersion,
-    "io.iteratee" %%% "iteratee-core" % iterateeVersion,
+    "io.monix" %% "monix-tail" % monixVersion,
     "com.lihaoyi" %%% "utest" % utestVersion % Test,
     "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
     "eu.timepit" %%% "refined-scalacheck" % refinedVersion % Test,

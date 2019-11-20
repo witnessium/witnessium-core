@@ -9,15 +9,22 @@ import cats.effect.{Sync, Timer}
 import eu.timepit.refined.refineV
 import eu.timepit.refined.numeric.NonNegative
 
+import crypto._
+import crypto.MerkleTrie.{MerkleTrieState, NodeStore}
 import crypto.KeyPair
 import crypto.Hash.ops._
 import datatype.UInt256Bytes
-import model.{Block, BlockHeader, Transaction}
+import model.{Address, Block, BlockHeader, Transaction}
 import repository.{BlockRepository, TransactionRepository}
+import repository.StateRepository._
 
 object TransactionService {
 
-  def submit[F[_]: Timer: Sync: BlockRepository: TransactionRepository](
+  def addressFromSignedTransaction(transaction: Transaction.Signed): Either[String, Address] = for {
+    (pubKey: BigInt) <- transaction.signature.signedMessageHashToKey(transaction.toHash)
+  } yield Address.fromPublicKey(crypto.keccak256)(pubKey)
+
+  def submit[F[_]: Timer: Sync: BlockRepository: TransactionRepository: NodeStore](
     transaction: Transaction.Signed,
     localKeyPair: KeyPair,
   ): EitherT[F, String, UInt256Bytes] = for {
@@ -28,10 +35,14 @@ object TransactionService {
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"generating new block with transactions: $txHash")))
     number <- EitherT.fromEither[F](refineV[NonNegative](bestBlockHeader.number.value + 1))
     now <- EitherT.right[String](Timer[F].clock.realTime(MILLISECONDS))
+    fromAddress <- EitherT.fromEither[F](addressFromSignedTransaction(transaction))
+    _ <- EitherT.right(Sync[F].pure(scribe.info(s"From address: $fromAddress")))
+    state <- MerkleTrieState.fromRoot(bestBlockHeader.stateRoot).put(fromAddress, transaction.value)
+    stateRoot <- EitherT.fromOption[F](state.root, s"No root is found from $state")
     newBlockHeader = BlockHeader(
       number = number,
       parentHash = bestBlockHeader.toHash,
-      stateRoot = crypto.hash(datatype.UInt256Refine.EmptyBytes),
+      stateRoot = stateRoot,
       transactionsRoot = crypto.hash(List(txHash)),
       timestamp = Instant.ofEpochMilli(now),
     )

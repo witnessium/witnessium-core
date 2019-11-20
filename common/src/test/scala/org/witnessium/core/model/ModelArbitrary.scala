@@ -68,11 +68,6 @@ trait ModelArbitrary {
     (9, arbitrarySigned[A].arbitrary),
   ))
 
-  implicit val arbitraryState: Arbitrary[State] = Arbitrary(for {
-    unused <- arbitrarySet[(Address, UInt256Bytes)].arbitrary
-    transactions <- arbitrarySet[Transaction.Verifiable].arbitrary
-  } yield State(unused, transactions))
-
   implicit val arbitraryBlockHeader: Arbitrary[BlockHeader] = Arbitrary(for {
     number <- arbitraryBigNat.arbitrary
     parentHash <- arbitraryUInt256Bytes.arbitrary

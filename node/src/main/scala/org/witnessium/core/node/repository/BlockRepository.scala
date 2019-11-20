@@ -31,7 +31,7 @@ object BlockRepository {
       _ <- (bestHeaderOption match {
         case Some(best) if best.number.value >=  block.header.number.value =>
           EitherT.pure[F, String](())
-        case _ => 
+        case _ =>
           bestBlockHeaderStore.put(block.header)
       })
     } yield ()

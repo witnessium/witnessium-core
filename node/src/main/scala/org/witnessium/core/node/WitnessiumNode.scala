@@ -5,7 +5,6 @@ import java.nio.file.{Path, Paths}
 import java.time.Instant
 import cats.data.EitherT
 import cats.effect.{ContextShift, IO}
-import cats.effect.concurrent.Ref
 import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.filter.Cors
 import com.twitter.finagle.http.{Request, Response}
@@ -30,18 +29,15 @@ import codec.circe._
 import client.GossipClient
 import client.interpreter.GossipClientInterpreter
 import crypto.Hash.ops._
-import datatype.{BigNat, Confidential, UInt256Bytes, UInt256Refine}
-import endpoint._//{BlockEndpoint, GossipEndpoint, JsFileEndpoint, NodeStatusEndpoint, TransactionEndpoint}
-//import endpoint.JsFileEndpoint
+import datatype.{BigNat, Confidential, MerkleTrieNode}
+import endpoint._
 import model.{Address, Block, BlockHeader, NetworkId, Transaction}
 import repository._
-import repository.interpreter._
+import repository.StateRepository._
 import service._
-//import service.interpreter._
 import store.{HashStore, SingleValueStore}
 import store.interpreter.{HashStoreSwayInterpreter, SingleValueStoreSwayInterpreter}
 import util.{EncodeException, ServingHtml}
-import util.SwayIOCats._
 import view.Index
 
 object WitnessiumNode extends TwitterServer with ServingHtml with EncodeException {
@@ -69,11 +65,13 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   } yield crypto.KeyPair.fromPrivate(BigInt(1, bytes.toArray))
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  val (genesisBlock, genesisTransaction) = GenesisBlockSetupService.getGenesisBlock(
+  val (genesisBlock, genesisState, genesisTransaction) = GenesisBlockSetupService.getGenesisBlock(
     networkId = nodeConfig.networkId,
     genesisInstant = genesisConfig.createdAt,
     initialDistribution = genesisConfig.initialDistribution,
   )
+
+  scribe.info(s"genesis state: $genesisState")
 
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
   implicit val cs: ContextShift[IO] = IO.contextShift(ec)
@@ -92,18 +90,11 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     swayDb(Paths.get("sway", "block"))
   )
 
-  val blockRepository: BlockRepository[IO] = implicitly[BlockRepository[IO]]
-
-  val gossipRepository: GossipRepository[SwayIO] = new GossipRepositoryInterpreter(
-    genesisHashRef = Ref.unsafe[SwayIO, UInt256Bytes](UInt256Refine.EmptyBytes),
-    swayBlockSuggestionMap = swayInmemoryDb,
-    swayBlockVoteMap = swayInmemoryDb,
-    swayNewTransactionMap = swayInmemoryDb,
-  )
-
-  val stateRepository: StateRepository[SwayIO] = new StateRepositoryInterpreter(
+  implicit val stateHashStore: HashStore[IO, MerkleTrieNode] = new HashStoreSwayInterpreter[MerkleTrieNode](
     swayDb(Paths.get("sway", "state"))
   )
+
+  val blockRepository: BlockRepository[IO] = implicitly[BlockRepository[IO]]
 
   implicit val transactionRepository: TransactionRepository[IO] =
     new HashStoreSwayInterpreter[Transaction.Verifiable](swayDb(Paths.get("sway", "transaction")))
@@ -162,6 +153,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     val startIO:  EitherT[IO, String, Unit] = for {
       _ <-  NodeInitializationService.initialize[IO](
         genesisBlock = genesisBlock,
+        genesisState = genesisState,
         genesisTransaction = genesisTransaction
       )
     } yield ()
