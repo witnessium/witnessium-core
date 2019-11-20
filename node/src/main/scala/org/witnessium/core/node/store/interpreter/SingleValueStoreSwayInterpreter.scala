@@ -7,12 +7,13 @@ import cats.data.EitherT
 import cats.effect.IO
 import cats.implicits._
 import scodec.bits.ByteVector
-import swaydb.Map
-import swaydb.data.{IO => SwayIO}
+import swaydb.{IO => SwayIO, Map}
 
 import codec.byte.{ByteCodec, ByteDecoder, ByteEncoder}
 
-class SingleValueStoreSwayInterpreter[A: ByteCodec](map: Map[Array[Byte], Array[Byte], SwayIO]) extends SingleValueStore[IO, A] {
+class SingleValueStoreSwayInterpreter[A: ByteCodec](
+  map: Map[Array[Byte], Array[Byte], Nothing, SwayIO.ApiIO]
+) extends SingleValueStore[IO, A] {
 
   def get(): EitherT[IO, String, Option[A]] = for {
     arrayOption <- EitherT.right(map.get(SingleValueStoreSwayInterpreter.Key).toIO)

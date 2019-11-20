@@ -22,7 +22,7 @@ import pureconfig.{CamelCase, ConfigFieldMapping, SnakeCase}
 import pureconfig.error.ConfigReaderFailures
 import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
-import swaydb.data.{IO => SwayIO}
+import swaydb.{IO => SwayIO}
 import swaydb.serializers.Default.ArraySerializer
 
 import codec.circe._
@@ -80,8 +80,10 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   /****************************************
    *  Setup Repositories
    ****************************************/
-  def swayDb(dir: Path): swaydb.Map[Array[Byte], Array[Byte], SwayIO] = swaydb.persistent.Map(dir).get
-  def swayInmemoryDb: swaydb.Map[Array[Byte], Array[Byte], SwayIO] = swaydb.memory.Map().get
+  def swayDb(dir: Path): swaydb.Map[Array[Byte], Array[Byte], Nothing, SwayIO.ApiIO] =
+    swaydb.persistent.Map[Array[Byte], Array[Byte], Nothing, SwayIO.ApiIO](dir).get
+  def swayInmemoryDb: swaydb.Map[Array[Byte], Array[Byte], Nothing, SwayIO.ApiIO] =
+    swaydb.memory.Map[Array[Byte], Array[Byte], Nothing, SwayIO.ApiIO]().get
 
   implicit val bestBlockHeaderStore: SingleValueStore[IO, BlockHeader] =
     new SingleValueStoreSwayInterpreter[BlockHeader](swayDb(Paths.get("sway","block", "best-header")))

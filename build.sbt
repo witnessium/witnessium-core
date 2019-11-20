@@ -7,7 +7,7 @@ lazy val scodecBitsVersion = "1.1.12"
 lazy val scalatagsVersion = "0.6.8"
 lazy val refinedVersion = "0.9.9"
 lazy val iterateeVersion = "0.19.0-M4"
-lazy val swaydbVersion = "0.8-beta.8"
+lazy val swaydbVersion = "0.10.9"
 lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
 lazy val scalajsJavaTimeVersion = "0.2.5"
@@ -152,6 +152,7 @@ lazy val node = (project in file("node"))
       "io.catbird" %% "catbird-util" % twitterVersion,
       "org.bouncycastle" % "bcprov-jdk15on" % bouncycastleVersion,
       "io.swaydb" %% "swaydb" % swaydbVersion,
+      "io.swaydb" %% "monix" % swaydbVersion,
       "com.outr" %% "scribe-slf4j18" % scribeVersion,
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "eu.timepit" %% "refined-pureconfig" % refinedVersion,
