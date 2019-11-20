@@ -10,13 +10,14 @@ import eu.timepit.refined.refineV
 import eu.timepit.refined.numeric.NonNegative
 
 import crypto._
-import crypto.MerkleTrie.{MerkleTrieState, NodeStore}
+import crypto.MerkleTrie.MerkleTrieState
 import crypto.KeyPair
 import crypto.Hash.ops._
-import datatype.UInt256Bytes
+import datatype.{MerkleTrieNode, UInt256Bytes}
 import model.{Address, Block, BlockHeader, Transaction}
-import repository.{BlockRepository, TransactionRepository}
+import repository.{BlockRepository, StateRepository, TransactionRepository}
 import repository.StateRepository._
+import store.HashStore
 
 object TransactionService {
 
@@ -24,10 +25,10 @@ object TransactionService {
     (pubKey: BigInt) <- transaction.signature.signedMessageHashToKey(transaction.toHash)
   } yield Address.fromPublicKey(crypto.keccak256)(pubKey)
 
-  def submit[F[_]: Timer: Sync: BlockRepository: TransactionRepository: NodeStore](
+  def submit[F[_]: Timer: Sync: BlockRepository: TransactionRepository](
     transaction: Transaction.Signed,
     localKeyPair: KeyPair,
-  ): EitherT[F, String, UInt256Bytes] = for {
+  )(implicit hashStore: HashStore[F, MerkleTrieNode]): EitherT[F, String, UInt256Bytes] = for {
     bestBlockHeaderOption <- implicitly[BlockRepository[F]].bestHeader
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"Best block header: $bestBlockHeaderOption")))
     bestBlockHeader <- EitherT.fromOption[F](bestBlockHeaderOption, "No best block header")
@@ -55,6 +56,7 @@ object TransactionService {
       votes = Set(signature),
     )
     _ <- implicitly[BlockRepository[F]].put(newBlock)
+    _ <- StateRepository.put(state)
     _ <- implicitly[TransactionRepository[F]].put(transaction)
   } yield txHash
 }

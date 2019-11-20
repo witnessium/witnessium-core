@@ -11,11 +11,11 @@ import io.finch.catsEffect._
 
 import codec.circe._
 import crypto.KeyPair
-import crypto.MerkleTrie.NodeStore
-import datatype.UInt256Bytes
+import datatype.{MerkleTrieNode, UInt256Bytes}
 import model.Transaction
 import repository.{BlockRepository, TransactionRepository}
 import service.TransactionService
+import store.HashStore
 
 @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
 class TransactionEndpoint(
@@ -24,7 +24,7 @@ class TransactionEndpoint(
   timer: Timer[IO],
   blockRepository: BlockRepository[IO],
   transactionRepository: TransactionRepository[IO],
-  nodeStore: NodeStore[IO],
+  hashStore: HashStore[IO, MerkleTrieNode],
 ) {
 
   val Get: Endpoint[IO, Transaction.Verifiable] = get("transaction" ::

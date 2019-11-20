@@ -33,7 +33,6 @@ import datatype.{BigNat, Confidential, MerkleTrieNode}
 import endpoint._
 import model.{Address, Block, BlockHeader, NetworkId, Transaction}
 import repository._
-import repository.StateRepository._
 import service._
 import store.{HashStore, SingleValueStore}
 import store.interpreter.{HashStoreSwayInterpreter, SingleValueStoreSwayInterpreter}
