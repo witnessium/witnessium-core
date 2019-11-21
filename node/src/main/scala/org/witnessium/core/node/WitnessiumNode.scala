@@ -33,6 +33,7 @@ import datatype.{BigNat, Confidential, MerkleTrieNode}
 import endpoint._
 import model.{Address, Block, BlockHeader, NetworkId, Transaction}
 import repository._
+import repository.StateRepository._
 import service._
 import store.{HashStore, SingleValueStore}
 import store.interpreter.{HashStoreSwayInterpreter, SingleValueStoreSwayInterpreter}
@@ -112,6 +113,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    *  Setup Endpoints and API
    ****************************************/
 
+  val addressEndpoint: AddressEndpoint = new AddressEndpoint()
   val nodeStatusEndpoint: NodeStatusEndpoint = new NodeStatusEndpoint(nodeConfig.networkId, genesisBlock.toHash)
   val blockEndpoint: BlockEndpoint = new BlockEndpoint()
   val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(localKeyPair)
@@ -122,6 +124,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val jsonEndpoint = (nodeStatusEndpoint.Get
+    :+: addressEndpoint.Get
     :+: blockEndpoint.Get
     :+: transactionEndpoint.Get
     :+: transactionEndpoint.Post

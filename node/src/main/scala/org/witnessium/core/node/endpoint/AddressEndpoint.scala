@@ -6,16 +6,24 @@ import cats.effect.IO
 import io.finch._
 import io.finch.catsEffect._
 
-import model.{Address, Transaction}
-import service.BlockExplorerService
+import crypto.MerkleTrie.NodeStore
+import model.Address
+import model.api.AddressInfo
+import repository.{BlockRepository, TransactionRepository}
+import service.AddressService
 
-class AddressEndpoint(blockExplorerService: BlockExplorerService[IO]) {
+@SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
+class AddressEndpoint()(implicit
+  blockRepository: BlockRepository[IO],
+  nodeStore: NodeStore[IO],
+  transactionRepository: TransactionRepository[IO],
+) {
 
-  val Get: Endpoint[IO, Seq[Transaction.Verifiable]] = get("address" ::
+  val Get: Endpoint[IO, AddressInfo] = get("address" ::
     path[Address].withToString("{address}")
   ) { (address: Address) =>
-    blockExplorerService.unused(address).map {
-      case Right(transactions) => Ok(transactions)
+    AddressService.balanceWithUnusedTxs[IO](address).value.map {
+      case Right((balance, txs)) => Ok(AddressInfo(address, balance, txs))
       case Left(errorMsg) =>
         scribe.info(s"Get address $address error response: $errorMsg")
         InternalServerError(new Exception(errorMsg))
