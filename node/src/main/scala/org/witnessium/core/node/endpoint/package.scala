@@ -1,7 +1,8 @@
 package org.witnessium.core
 package node
 
-import io.finch.DecodePath
+import scala.util.Try
+import io.finch.{DecodeEntity, DecodePath}
 import scodec.bits.ByteVector
 import datatype.{UInt256Bytes, UInt256Refine}
 import model.Address
@@ -16,4 +17,6 @@ package object endpoint {
   }
 
   implicit val addressDecoder: DecodePath[Address] = Address.fromHex(_).toOption
+
+  implicit val bigintDecoder: DecodeEntity[BigInt] = { s => Try(BigInt(s)).toEither }
 }

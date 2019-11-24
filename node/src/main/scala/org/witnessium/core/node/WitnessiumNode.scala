@@ -29,14 +29,14 @@ import codec.circe._
 import client.GossipClient
 import client.interpreter.GossipClientInterpreter
 import crypto.Hash.ops._
-import datatype.{BigNat, Confidential, MerkleTrieNode}
+import datatype.{BigNat, Confidential, MerkleTrieNode, UInt256Bytes}
 import endpoint._
 import model.{Address, Block, BlockHeader, NetworkId, Transaction}
 import repository._
 import repository.StateRepository._
 import service._
-import store.{HashStore, SingleValueStore}
-import store.interpreter.{HashStoreSwayInterpreter, SingleValueStoreSwayInterpreter}
+import store.{HashStore, SingleValueStore, StoreIndex}
+import store.interpreter._
 import util.{EncodeException, ServingHtml}
 import view.Index
 
@@ -92,6 +92,9 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     swayDb(Paths.get("sway", "block"))
   )
 
+  implicit val blockNumberStoreIndex : StoreIndex[IO, BigNat, UInt256Bytes] =
+    StoreIndexSwayInterpreter.reverseBignatStoreIndex(Paths.get("sway", "block", "index", "block-number"))
+
   implicit val stateHashStore: HashStore[IO, MerkleTrieNode] = new HashStoreSwayInterpreter[MerkleTrieNode](
     swayDb(Paths.get("sway", "state"))
   )
@@ -125,6 +128,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val jsonEndpoint = (nodeStatusEndpoint.Get
     :+: addressEndpoint.Get
+    :+: blockEndpoint.Index
     :+: blockEndpoint.Get
     :+: transactionEndpoint.Get
     :+: transactionEndpoint.Post

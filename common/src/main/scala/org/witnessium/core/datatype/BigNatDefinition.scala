@@ -6,4 +6,3 @@ import eu.timepit.refined.numeric.NonNegative
 trait BigNatDefinition {
   type BigNat = BigInt Refined NonNegative
 }
-

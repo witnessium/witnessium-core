@@ -1,7 +1,7 @@
-lazy val finchVersion = "0.29.0"
+lazy val finchVersion = "0.31.0"
 lazy val circeVersion = "0.11.1"
 lazy val monixVersion = "3.1.0"
-lazy val twitterVersion = "19.6.0"
+lazy val twitterVersion = "19.8.0"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
 lazy val scalatagsVersion = "0.6.8"
@@ -27,7 +27,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 lazy val sharedSettings = Seq(
   organization := "org.witnessium",
   version := "0.0.1-SNAPSHOT",
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.12.9",
 
   autoCompilerPlugins := true,
   addCompilerPlugin("com.lihaoyi" %% "acyclic" % acyclicVersion),
@@ -146,6 +146,7 @@ lazy val node = (project in file("node"))
     libraryDependencies ++= Seq(
       "com.github.finagle" %% "finchx-core"  % finchVersion,
       "com.github.finagle" %% "finchx-circe"  % finchVersion,
+      "com.github.finagle" %% "finchx-refined"  % finchVersion,
       "com.twitter" %% "twitter-server" % twitterVersion,
       "com.twitter" %% "finagle-stats"  % twitterVersion,
       "io.catbird" %% "catbird-effect" % twitterVersion,
