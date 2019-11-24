@@ -13,6 +13,7 @@ import codec.circe._
 import crypto.KeyPair
 import datatype.{MerkleTrieNode, UInt256Bytes}
 import model.Transaction
+import model.api.TransactionInfo
 import repository.{BlockRepository, TransactionRepository}
 import service.TransactionService
 import store.HashStore
@@ -27,12 +28,12 @@ class TransactionEndpoint(
   hashStore: HashStore[IO, MerkleTrieNode],
 ) {
 
-  val Get: Endpoint[IO, Transaction.Verifiable] = get("transaction" ::
+  val Get: Endpoint[IO, TransactionInfo] = get("transaction" ::
     path[UInt256Bytes].withToString("{transactionHash}")
   ) { (transactionHash: UInt256Bytes) =>
     scribe.info(s"Receive get transaction request: $transactionHash")
-    transactionRepository.get(transactionHash).value.map {
-      case Right(Some(transactionVerifiable)) => Ok(transactionVerifiable)
+    TransactionService.get[IO](transactionHash).value.map {
+      case Right(Some(txInfo)) => Ok(txInfo)
       case Right(None) => NotFound(new Exception(s"Not found: $transactionHash"))
       case Left(errorMsg) =>
         scribe.info(s"Get transaction $transactionHash error response: $errorMsg")

@@ -6,6 +6,7 @@ import java.time.Instant
 import scala.concurrent.duration._
 import cats.data.EitherT
 import cats.effect.{Sync, Timer}
+import cats.implicits._
 import eu.timepit.refined.refineV
 import eu.timepit.refined.numeric.NonNegative
 
@@ -15,11 +16,27 @@ import crypto.KeyPair
 import crypto.Hash.ops._
 import datatype.{MerkleTrieNode, UInt256Bytes}
 import model.{Address, Block, BlockHeader, Transaction}
+import model.api.TransactionInfo
 import repository.{BlockRepository, StateRepository, TransactionRepository}
 import repository.StateRepository._
 import store.HashStore
 
 object TransactionService {
+
+  def get[F[_]: cats.Monad: BlockRepository: TransactionRepository](
+    transactionHash: UInt256Bytes
+  ): EitherT[F, String, Option[TransactionInfo]] = {
+    implicitly[TransactionRepository[F]].get(transactionHash).flatMap{ txOption =>
+      txOption.traverse { tx => for {
+        blockHashOption <- implicitly[BlockRepository[F]].findByTransaction(transactionHash)
+        blockInfoOption <- blockHashOption.traverse(BlockService.blockHashToBlockInfo[F])
+      } yield TransactionInfo(
+        blockInfo = blockInfoOption,
+        txHash = transactionHash,
+        tx = tx,
+      )}
+    }
+  }
 
   def addressFromSignedTransaction(transaction: Transaction.Signed): Either[String, Address] = for {
     (pubKey: BigInt) <- transaction.signature.signedMessageHashToKey(transaction.toHash)
@@ -56,7 +73,7 @@ object TransactionService {
       votes = Set(signature),
     )
     _ <- implicitly[BlockRepository[F]].put(newBlock)
-    _ <- StateRepository.put(state)
+    _ <- StateRepository.put[F](state)
     _ <- implicitly[TransactionRepository[F]].put(transaction)
   } yield txHash
 }

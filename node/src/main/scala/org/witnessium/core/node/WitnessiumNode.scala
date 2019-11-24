@@ -35,7 +35,7 @@ import model.{Address, Block, BlockHeader, NetworkId, Transaction}
 import repository._
 import repository.StateRepository._
 import service._
-import store.{HashStore, SingleValueStore, StoreIndex}
+import store.{HashStore, KeyValueStore, SingleValueStore, StoreIndex}
 import store.interpreter._
 import util.{EncodeException, ServingHtml}
 import view.Index
@@ -92,12 +92,15 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     swayDb(Paths.get("sway", "block"))
   )
 
-  implicit val blockNumberStoreIndex : StoreIndex[IO, BigNat, UInt256Bytes] =
+  implicit val blockNumberStoreIndex: StoreIndex[IO, BigNat, UInt256Bytes] =
     StoreIndexSwayInterpreter.reverseBignatStoreIndex(Paths.get("sway", "block", "index", "block-number"))
 
   implicit val stateHashStore: HashStore[IO, MerkleTrieNode] = new HashStoreSwayInterpreter[MerkleTrieNode](
     swayDb(Paths.get("sway", "state"))
   )
+
+  implicit val txBlockIndex: KeyValueStore[IO, UInt256Bytes, UInt256Bytes] =
+    new StoreIndexSwayInterpreter(Paths.get("sway", "block", "index", "txhash"))
 
   val blockRepository: BlockRepository[IO] = implicitly[BlockRepository[IO]]
 
