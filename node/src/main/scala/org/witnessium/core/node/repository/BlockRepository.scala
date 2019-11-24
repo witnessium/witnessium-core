@@ -49,7 +49,7 @@ object BlockRepository {
     } yield ()
 
     def listFrom(blockNumber: BigNat, limit: Int): EitherT[F, String, List[(BigNat, UInt256Bytes)]] =
-      blockNumberIndex.from(blockNumber, Some(limit))
+      blockNumberIndex.from(blockNumber, 0, limit)
 
     def findByTransaction(txHash: UInt256Bytes): EitherT[F, String, Option[UInt256Bytes]] = txBlockIndex.get(txHash)
   }

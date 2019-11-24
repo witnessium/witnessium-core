@@ -43,11 +43,8 @@ class StoreIndexSwayInterpreter[K: ByteCodec, V: ByteCodec](
 
   def remove(key: K): IO[Unit] = map.remove(key).toIO.map(_ => ())
 
-  def from(key: K, limit: Option[Int]): EitherT[IO, String, List[(K, V)]] = EitherT{
-    val stream = map.fromOrAfter(key).stream
-    val streamLimited = limit.fold(stream)(stream.take)
-
-    streamLimited.materialize.toIO.map(
+  def from(key: K, offset: Int, limit: Int): EitherT[IO, String, List[(K, V)]] = EitherT{
+    map.fromOrAfter(key).stream.drop(offset).take(limit).materialize.toIO.map(
       _.toList.traverse { case (key, valueArray) =>
         for {
           valueDecoded <- (ByteDecoder[V].decode(ByteVector view valueArray))

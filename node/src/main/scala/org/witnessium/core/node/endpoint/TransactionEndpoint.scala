@@ -12,8 +12,8 @@ import io.finch.catsEffect._
 import codec.circe._
 import crypto.KeyPair
 import datatype.{MerkleTrieNode, UInt256Bytes}
-import model.Transaction
-import model.api.TransactionInfo
+import model.{Address, Transaction}
+import model.api.{TransactionInfo, TransactionInfoBrief}
 import repository.{BlockRepository, TransactionRepository}
 import service.TransactionService
 import store.HashStore
@@ -27,6 +27,21 @@ class TransactionEndpoint(
   transactionRepository: TransactionRepository[IO],
   hashStore: HashStore[IO, MerkleTrieNode],
 ) {
+
+  val Index: Endpoint[IO, List[TransactionInfoBrief]] = get("transaction" ::
+    param[Address]("address") ::
+    paramOption[Int]("offset") ::
+    paramOption[Int]("limit")
+  ) { (address: Address, offsetOption: Option[Int], limitOption: Option[Int]) =>
+    TransactionService.findByAddress[IO](address, offsetOption getOrElse 0, limitOption getOrElse 10).value.map {
+      case Right(txInfos) => Ok(txInfos)
+      case Left(errorMsg) =>
+        scribe.info(
+          s"Index transaction with address: $address offset:$offsetOption limit:limitOption error response: $errorMsg"
+        )
+        InternalServerError(new Exception(errorMsg))
+    }
+  }
 
   val Get: Endpoint[IO, TransactionInfo] = get("transaction" ::
     path[UInt256Bytes].withToString("{transactionHash}")

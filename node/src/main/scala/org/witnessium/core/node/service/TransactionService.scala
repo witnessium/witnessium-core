@@ -4,6 +4,7 @@ package service
 
 import java.time.Instant
 import scala.concurrent.duration._
+import cats.Monad
 import cats.data.EitherT
 import cats.effect.{Sync, Timer}
 import cats.implicits._
@@ -15,15 +16,46 @@ import crypto.MerkleTrie.MerkleTrieState
 import crypto.KeyPair
 import crypto.Hash.ops._
 import datatype.{MerkleTrieNode, UInt256Bytes}
-import model.{Address, Block, BlockHeader, Transaction}
-import model.api.TransactionInfo
+import model.{Address, Block, BlockHeader, Genesis, Signed, Transaction}
+import model.api.{TransactionInfo, TransactionInfoBrief}
 import repository.{BlockRepository, StateRepository, TransactionRepository}
 import repository.StateRepository._
 import store.HashStore
 
 object TransactionService {
 
-  def get[F[_]: cats.Monad: BlockRepository: TransactionRepository](
+  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
+  def transactionToSenderAdddress(transaction: Transaction.Verifiable)(
+    txHash: UInt256Bytes = transaction.toHash
+  ): Option[Address] = transaction match {
+    case Genesis(_) => None
+    case Signed(sig, value@_) => sig.signedMessageHashToKey(txHash).map(Address.fromPublicKey(keccak256)).toOption
+  }
+
+  def transactionHashToTransactionInfo[F[_]: Monad: BlockRepository: TransactionRepository](
+    txHash: UInt256Bytes
+  ): EitherT[F, String, TransactionInfoBrief] = for {
+    txOption <- implicitly[TransactionRepository[F]].get(txHash)
+    tx <- EitherT.fromOption[F](txOption, s"Transacion $txHash not found")
+    blockHashOption <- implicitly[BlockRepository[F]].findByTransaction(txHash)
+    blockHash <-  EitherT.fromOption[F](blockHashOption, s"Block with tx $txHash not found")
+    blockOption <- implicitly[BlockRepository[F]].get(blockHash)
+    block <- EitherT.fromOption[F](blockOption, s"Block $blockHash not found")
+  } yield TransactionInfoBrief(
+    txHash = txHash,
+    confirmedAt = block.header.timestamp,
+    inputAddress = transactionToSenderAdddress(tx)(txHash),
+    outputs = tx.value.outputs.toList,
+  )
+
+  def findByAddress[F[_]: Monad: BlockRepository: TransactionRepository](
+    address: Address, offset: Int, limit: Int
+  ): EitherT[F, String, List[TransactionInfoBrief]] = for {
+    txHashes <- implicitly[TransactionRepository[F]].listByAddress(address, offset, limit)
+    txInfos <- txHashes.traverse[EitherT[F, String, *], TransactionInfoBrief](transactionHashToTransactionInfo)
+  } yield txInfos.sortBy(-_.confirmedAt.getEpochSecond())
+
+  def get[F[_]: Monad: BlockRepository: TransactionRepository](
     transactionHash: UInt256Bytes
   ): EitherT[F, String, Option[TransactionInfo]] = {
     implicitly[TransactionRepository[F]].get(transactionHash).flatMap{ txOption =>

@@ -104,8 +104,13 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   val blockRepository: BlockRepository[IO] = implicitly[BlockRepository[IO]]
 
-  implicit val transactionRepository: TransactionRepository[IO] =
+  implicit val transctionHashStore: HashStore[IO, Transaction.Verifiable] =
     new HashStoreSwayInterpreter[Transaction.Verifiable](swayDb(Paths.get("sway", "transaction")))
+
+  implicit val addressTransactionIndex: StoreIndex[IO, (Address, UInt256Bytes), Unit] =
+    new StoreIndexSwayInterpreter(Paths.get("sway", "transaction", "index", "address"))
+
+  val transactionRepository: TransactionRepository[IO] = implicitly[TransactionRepository[IO]]
 
   /****************************************
    *  Setup Clients
@@ -133,6 +138,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     :+: addressEndpoint.Get
     :+: blockEndpoint.Index
     :+: blockEndpoint.Get
+    :+: transactionEndpoint.Index
     :+: transactionEndpoint.Get
     :+: transactionEndpoint.Post
   )
