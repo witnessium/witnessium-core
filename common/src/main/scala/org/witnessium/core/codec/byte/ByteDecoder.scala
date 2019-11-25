@@ -185,7 +185,7 @@ object ByteDecoder {
     uint8 = byte & 0xff
     numberOfNibble = (uint8 % (1 << 7)).toLong
     prefixRefined <- fromFixedSizeBytes((numberOfNibble + 1) / 2){
-      _.bits.takeRight(numberOfNibble * 4)
+      _.bits.take(numberOfNibble * 4)
     }.emap{ prefix => refineV[MerkleTrieNode.PrefixCondition](prefix)}
     decoder <- ((uint8 >> 7) match {
       case 0 =>

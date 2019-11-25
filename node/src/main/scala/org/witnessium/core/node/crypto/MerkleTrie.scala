@@ -210,10 +210,17 @@ object MerkleTrie {
             (Iterant.empty[EitherT[F, String, *], (BitVector, A)] /: enums)(_ ++ _)
           }
 
-          if (key <= prefix.value) children.unsized.toList.zipWithIndex traverse runFrom(BitVector.empty) map flatten
-          else if (!prefix.value.startsWith(key)) EitherT.rightT[F, String](Iterant.empty)
+          if (key <= prefix.value) {
+            scribe.debug(s"======>[Case #1] key: $key, prefix: ${prefix.value}")
+            children.unsized.toList.zipWithIndex traverse runFrom(BitVector.empty) map flatten
+          }
+          else if (prefix.value.nonEmpty && !prefix.value.startsWith(key)) {
+            scribe.debug(s"======>[Casee #2] prefix: ${prefix.value}, key: $key")
+            EitherT.rightT[F, String](Iterant.empty)
+          }
           else {
             val (index1, key1) = key drop prefix.value.size splitAt 4L
+            scribe.debug(s"======>[Case #3] index1: $index1, key1: $key1")
             val targetChildren: List[(Option[UInt256Bytes], Int)] =
               children.unsized.toList.zipWithIndex.drop(index1.toInt(signed = false))
             targetChildren match {
@@ -240,7 +247,10 @@ object MerkleTrie {
         _.toRight(s"Merkle trie node is not found: $state")
       }
     }(EitherT.rightT[F, String](_))
-  } yield node
+  } yield {
+    scribe.info(s"Accessing node ${state.root} -> $node")
+    node
+  }
 
   type PrefixBits = BitVector Refined MerkleTrieNode.PrefixCondition
 
@@ -291,9 +301,13 @@ object MerkleTrie {
 
   implicit class BitVectorCompare(val bits: BitVector) extends AnyVal {
     def <=(that: BitVector): Boolean = {
-      val xor = bits ^ that
-      if (xor.populationCount === 0L) bits.size <= that.size
-      else ~(bits implies that).populationCount === 0L
+      val thisBytes = bits.bytes
+      val thatBytes = that.bytes
+      val minSize = thisBytes.size min thatBytes.size
+
+      (0L until minSize).find{ i =>
+        thisBytes.get(i) =/= thatBytes.get(i)
+      }.fold(bits.size <= that.size){ i => thisBytes.get(i) <= thatBytes.get(i) }
     }
   }
 

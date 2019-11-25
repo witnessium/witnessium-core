@@ -15,8 +15,15 @@ import store.HashStore
 
 object StateRepository {
 
-  def put[F[_]: Monad](state: MerkleTrieState)(implicit store: HashStore[F, MerkleTrieNode]): EitherT[F, String, Unit] = {
-    state.diff.addition.toList.traverse{ case (_, node) => store.put(node) }.map(_ => ())
+  def put[F[_]: Monad](state: MerkleTrieState)(implicit
+    store: HashStore[F, MerkleTrieNode]
+  ): EitherT[F, String, Unit] = for {
+    _ <- state.diff.addition.toList.traverse{ case (_, node) => store.put(node) }
+    merkleTrieNodes <- state.diff.addition.toList.traverse{ case (hash, _) => store.get(hash).map((hash, _)) }
+  } yield {
+    scribe.debug(s"=== Nodes saved ===")
+    merkleTrieNodes foreach { case (k, v) => scribe.debug(s"$k: $v") }
+    scribe.debug(s"===================")
   }
 
   implicit def nodeStoreFromHashStore[F[_]](implicit
@@ -56,8 +63,12 @@ object StateRepository {
       scribe.info(s"Put address: $address, transaction: $transaction")
       val txBytes = crypto.hash(transaction)
       val program = for {
-        _ <- transaction.inputs.toList.traverse{ txHash => MerkleTrie.removeByKey(address.bytes.bits ++ txHash.bits) }
-        _ <- transaction.outputs.toList.traverse{ case (address1, _) => MerkleTrie.put((address1.bytes ++ txBytes).bits, ()) }
+        _ <- transaction.inputs.toList.traverse{
+          txHash => MerkleTrie.removeByKey(address.bytes.bits ++ txHash.bits)
+        }
+        _ <- transaction.outputs.toList.traverse{
+          case (address1, _) => MerkleTrie.put((address1.bytes ++ txBytes).bits, ())
+        }
       } yield ()
       program runS merkleState
     }

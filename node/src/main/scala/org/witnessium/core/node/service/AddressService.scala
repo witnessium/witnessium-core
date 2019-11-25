@@ -18,7 +18,10 @@ object AddressService{
   ): EitherT[F, String, List[UInt256Bytes]] = for {
     bestHeaderOption <- implicitly[BlockRepository[F]].bestHeader
     bestHeader <- EitherT.fromOption[F](bestHeaderOption, s"No best header in finding unused tx hashes: $address")
+    all <- MerkleTrieState.fromRoot(bestHeader.stateRoot).getAll
+    _ <- EitherT.right(Sync[F].pure(scribe.info(s"$all state contents: $all")))
     txHashes <- MerkleTrieState.fromRoot(bestHeader.stateRoot).get(address)
+    _ <- EitherT.right(Sync[F].pure(scribe.info(s"$address utxo: $txHashes")))
   } yield txHashes
 
   def unusedTxs[F[_]: Sync: BlockRepository: NodeStore: TransactionRepository](

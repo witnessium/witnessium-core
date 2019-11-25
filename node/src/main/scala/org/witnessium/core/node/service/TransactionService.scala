@@ -89,6 +89,7 @@ object TransactionService {
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"From address: $fromAddress")))
     state <- MerkleTrieState.fromRoot(bestBlockHeader.stateRoot).put(fromAddress, transaction.value)
     stateRoot <- EitherT.fromOption[F](state.root, s"No root is found from $state")
+
     newBlockHeader = BlockHeader(
       number = number,
       parentHash = bestBlockHeader.toHash,
@@ -96,7 +97,7 @@ object TransactionService {
       transactionsRoot = crypto.hash(List(txHash)),
       timestamp = Instant.ofEpochMilli(now),
     )
-    newBlockHash = crypto.hash(newBlockHeader)
+    newBlockHash = newBlockHeader.toHash
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"next block header: $newBlockHeader")))
     signature <- EitherT.fromEither[F](localKeyPair.sign(newBlockHash.toArray))
     newBlock = Block(
@@ -104,6 +105,7 @@ object TransactionService {
       transactionHashes = Set(txHash),
       votes = Set(signature),
     )
+
     _ <- implicitly[BlockRepository[F]].put(newBlock)
     _ <- StateRepository.put[F](state)
     _ <- implicitly[TransactionRepository[F]].put(transaction)

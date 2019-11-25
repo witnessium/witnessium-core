@@ -5,7 +5,7 @@ import java.nio.file.{Path, Paths}
 import java.time.Instant
 import cats.data.EitherT
 import cats.effect.{ContextShift, IO}
-import com.twitter.finagle.{Http, Service}
+import com.twitter.finagle.{Http, ListeningServer, Service}
 import com.twitter.finagle.http.filter.Cors
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.finagle.param.Stats
@@ -164,36 +164,35 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   /****************************************
    *  Run Server
    ****************************************/
+  val startIO:  EitherT[IO, String, Unit] = for {
+    _ <-  NodeInitializationService.initialize[IO](
+      genesisBlock = genesisBlock,
+      genesisState = genesisState,
+      genesisTransaction = genesisTransaction
+    )
+  } yield ()
+
+  startIO.value.unsafeToFuture().onComplete {
+    case scala.util.Success(v) =>
+      scribe.info(s"startIO finishes successfully: $v")
+    case scala.util.Failure(t) =>
+      scribe.error("An error has occurred in startIO: " + t.getMessage)
+      t.printStackTrace()
+  }
+
+  val server: ListeningServer = Http.server
+    .withStreaming(enabled = true)
+    .configured(Stats(statsReceiver))
+    .serve(s":${nodeConfig.port}", api)
+
+  onExit {
+    { val _ = adminHttpServer.close() }
+    { val _ = server.close() }
+  }
+
   @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   def main(): Unit = {
-
-    val startIO:  EitherT[IO, String, Unit] = for {
-      _ <-  NodeInitializationService.initialize[IO](
-        genesisBlock = genesisBlock,
-        genesisState = genesisState,
-        genesisTransaction = genesisTransaction
-      )
-    } yield ()
-
-    startIO.value.unsafeToFuture().onComplete {
-      case scala.util.Success(v) =>
-        scribe.info(s"startIO finishes successfully: $v")
-      case scala.util.Failure(t) =>
-        scribe.error("An error has occurred in startIO: " + t.getMessage)
-        t.printStackTrace()
-    }
-
     try {
-      val server = Http.server
-        .withStreaming(enabled = true)
-        .configured(Stats(statsReceiver))
-        .serve(s":${nodeConfig.port}", api)
-
-      onExit {
-        { val _ = adminHttpServer.close() }
-        { val _ = server.close() }
-      }
-
       val _ = Await.ready(server)
     } catch {
       case _: java.lang.InterruptedException =>

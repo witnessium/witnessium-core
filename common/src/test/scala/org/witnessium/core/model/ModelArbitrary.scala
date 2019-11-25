@@ -88,7 +88,7 @@ trait ModelArbitrary {
   implicit val arbitraryMerkleTrieNode: Arbitrary[MerkleTrieNode] = Arbitrary(for {
     isLeaf <- Gen.oneOf(true, false)
     nibbleSize <- Gen.choose(0, 127)
-    prefixBytes <- Gen.listOfN((nibbleSize + 1) / 4, Arbitrary.arbitrary[Byte])
+    prefixBytes <- Gen.listOfN((nibbleSize + 1) / 2, Arbitrary.arbitrary[Byte])
     prefix = refineV[MerkleTrieNode.PrefixCondition]{
       BitVector.view(prefixBytes.toArray).take(nibbleSize * 4L)
     }.toOption.get

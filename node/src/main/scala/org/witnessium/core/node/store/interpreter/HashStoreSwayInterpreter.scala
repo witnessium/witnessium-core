@@ -13,7 +13,6 @@ import codec.byte.{ByteCodec, ByteDecoder, ByteEncoder}
 import crypto.Hash
 import crypto.Hash.ops._
 import datatype.UInt256Bytes
-//import util.SwayIOCats._
 
 class HashStoreSwayInterpreter[A: ByteCodec: Hash](
   map: Map[Array[Byte], Array[Byte], Nothing, SwayIO.ApiIO]
@@ -29,6 +28,22 @@ class HashStoreSwayInterpreter[A: ByteCodec: Hash](
 
   def put(a: A): EitherT[IO, String, Unit] = for{
     bytes <- EitherT.pure[IO, String](ByteEncoder[A].encode(a))
-    _ <- EitherT.liftF[IO, String, Unit](map.put(a.toHash.toArray, bytes.toArray).toIO.map(_ => ()))
-  } yield ()
+    hash = a.toHash
+    _ <- EitherT.liftF[IO, String, Unit](map.put(hash.toArray, bytes.toArray).toIO.map(_ => ()))
+
+    arrayOption <- EitherT.right(map.get(hash.toBytes.toArray).toIO)
+    decodeResult <- arrayOption.traverse{ array =>
+      EitherT.fromEither[IO](
+        ByteDecoder[A].decode(ByteVector.view(array))
+      )
+    }
+    saved = decodeResult.map(_.value)
+  } yield (saved match {
+    case Some(aSaved) if aSaved === a => ()
+    case _ =>
+      scribe.warn(s"===> Put $a but saved $saved!!!")
+      scribe.warn(s"===> put bytes: $bytes")
+      scribe.warn(s"===> get bytes: ${arrayOption map ByteVector.view }")
+      scribe.warn(s"===> decode result: $decodeResult")
+  })
 }
