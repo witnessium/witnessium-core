@@ -20,5 +20,7 @@ package object endpoint {
 
   implicit val addressDecodeEntity: DecodeEntity[Address] = Address.fromHex(_).left.map(new Exception(_))
 
+  implicit val bigintDecodePath: DecodePath[BigInt] = { s => Try(BigInt(s)).toOption }
+
   implicit val bigintDecodeEntity: DecodeEntity[BigInt] = { s => Try(BigInt(s)).toEither }
 }

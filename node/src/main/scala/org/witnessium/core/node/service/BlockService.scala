@@ -3,11 +3,11 @@ package node
 package service
 
 import cats.Monad
-import cats.data.EitherT
+import cats.data.{EitherT, OptionT}
 import cats.implicits._
 import datatype.{BigNat, UInt256Bytes}
 import model.{Block, BlockHeader}
-import model.api.BlockInfoBrief
+import model.api.{BlockInfo, BlockInfoBrief}
 import repository.BlockRepository
 
 object BlockService {
@@ -37,4 +37,20 @@ object BlockService {
 
   def get[F[_]: BlockRepository](blockHash: UInt256Bytes): EitherT[F, String, Option[Block]] =
     implicitly[BlockRepository[F]].get(blockHash)
+
+  def findByBlockNumber[F[_]: Monad: BlockRepository](
+    blockNumber: BigNat
+  ): EitherT[F, String, Option[BlockInfo]] = (for {
+    (blockNumber1, blockHash) <- OptionT{
+      implicitly[BlockRepository[F]].listFrom(blockNumber, 1).map(_.find(_._1 === blockNumber))
+    }
+    block <- OptionT(implicitly[BlockRepository[F]].get(blockHash))
+  } yield BlockInfo(
+    blockNumber = blockNumber,
+    blockHash = blockHash,
+    createdAt = block.header.timestamp,
+    numberOfTransaction = block.transactionHashes.size,
+    stateRoot = block.header.stateRoot,
+    parentHash = block.header.parentHash,
+  )).value
 }

@@ -138,6 +138,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     :+: addressEndpoint.Get
     :+: blockEndpoint.Index
     :+: blockEndpoint.Get
+    :+: blockEndpoint.GetBlockInfo
     :+: transactionEndpoint.Index
     :+: transactionEndpoint.Get
     :+: transactionEndpoint.Post
