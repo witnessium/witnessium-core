@@ -16,21 +16,13 @@ import crypto.MerkleTrie.MerkleTrieState
 import crypto.KeyPair
 import crypto.Hash.ops._
 import datatype.{MerkleTrieNode, UInt256Bytes}
-import model.{Address, Block, BlockHeader, Genesis, Signed, Transaction}
+import model.{Address, Block, BlockHeader, Transaction}
 import model.api.{TransactionInfo, TransactionInfoBrief}
 import repository.{BlockRepository, StateRepository, TransactionRepository}
 import repository.StateRepository._
 import store.HashStore
 
 object TransactionService {
-
-  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-  def transactionToSenderAdddress(transaction: Transaction.Verifiable)(
-    txHash: UInt256Bytes = transaction.toHash
-  ): Option[Address] = transaction match {
-    case Genesis(_) => None
-    case Signed(sig, value@_) => sig.signedMessageHashToKey(txHash).map(Address.fromPublicKey(keccak256)).toOption
-  }
 
   def transactionHashToTransactionInfo[F[_]: Monad: BlockRepository: TransactionRepository](
     txHash: UInt256Bytes
@@ -44,7 +36,7 @@ object TransactionService {
   } yield TransactionInfoBrief(
     txHash = txHash,
     confirmedAt = block.header.timestamp,
-    inputAddress = transactionToSenderAdddress(tx)(txHash),
+    inputAddress = ServiceUtil.transactionToSenderAddress(tx)(txHash),
     outputs = tx.value.outputs.toList,
   )
 

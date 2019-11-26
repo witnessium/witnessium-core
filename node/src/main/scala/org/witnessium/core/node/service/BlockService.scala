@@ -8,7 +8,7 @@ import cats.implicits._
 import datatype.{BigNat, UInt256Bytes}
 import model.{Block, BlockHeader}
 import model.api.{BlockInfo, BlockInfoBrief}
-import repository.BlockRepository
+import repository.{BlockRepository, TransactionRepository}
 
 object BlockService {
 
@@ -38,19 +38,46 @@ object BlockService {
   def get[F[_]: BlockRepository](blockHash: UInt256Bytes): EitherT[F, String, Option[Block]] =
     implicitly[BlockRepository[F]].get(blockHash)
 
-  def findByBlockNumber[F[_]: Monad: BlockRepository](
+  def findByBlockNumber[F[_]: Monad: BlockRepository: TransactionRepository](
     blockNumber: BigNat
   ): EitherT[F, String, Option[BlockInfo]] = (for {
     (blockNumber1, blockHash) <- OptionT{
       implicitly[BlockRepository[F]].listFrom(blockNumber, 1).map(_.find(_._1 === blockNumber))
     }
     block <- OptionT(implicitly[BlockRepository[F]].get(blockHash))
+    txs <- block.transactionHashes.toList.traverse(txHash => for {
+      tx <- OptionT(implicitly[TransactionRepository[F]].get(txHash))
+      senderOption = ServiceUtil.transactionToSenderAddress(tx)(txHash)
+      inputs <- tx.value.inputs.toList.traverse{ inputHash =>
+        OptionT(implicitly[TransactionRepository[F]].get(inputHash))
+      }
+    } yield (txHash, tx, senderOption, inputs))
   } yield BlockInfo(
-    blockNumber = blockNumber,
-    blockHash = blockHash,
-    createdAt = block.header.timestamp,
-    numberOfTransaction = block.transactionHashes.size,
-    stateRoot = block.header.stateRoot,
-    parentHash = block.header.parentHash,
+    blockInfo = BlockInfo.Block(
+      blockNumber = blockNumber,
+      blockHash = blockHash,
+      createdAt = block.header.timestamp,
+      numberOfTransaction = block.transactionHashes.size,
+      stateRoot = block.header.stateRoot,
+      parentHash = block.header.parentHash,
+    ),
+    trans = txs.map{ case (txHash, tx, senderOption, inputs) => BlockInfo.Transaction(
+      tranHash = txHash,
+      totalValue = tx.value.outputs.map(_._2.value).sum,
+      items = {
+        val (h::t) = tx.value.outputs.toList.map{ case (address, amount) => BlockInfo.TransactionItem(
+          sendAddress = None,
+          amt = None,
+          receiveAddress = address,
+          value = amount,
+        )}
+        h.copy(
+          sendAddress = senderOption,
+          amt = senderOption.map{ sender =>
+            inputs.flatMap{ input => input.value.outputs.filter(_._1 === sender).map(_._2.value) }.sum
+          }
+        ) :: t
+      },
+    )},
   )).value
 }

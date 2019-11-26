@@ -10,11 +10,14 @@ import io.finch.refined._
 import datatype.{BigNat, UInt256Bytes}
 import model.Block
 import model.api.{BlockInfo, BlockInfoBrief}
-import repository.BlockRepository
+import repository.{BlockRepository, TransactionRepository}
 import service.BlockService
 
 @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
-class BlockEndpoint()(implicit blockRepository: BlockRepository[IO]) {
+class BlockEndpoint()(implicit
+  blockRepository: BlockRepository[IO],
+  transactionRepository: TransactionRepository[IO],
+) {
 
   val Index: Endpoint[IO, List[BlockInfoBrief]] = get("block" ::
     paramOption[BigNat]("from") ::
