@@ -15,7 +15,7 @@ import crypto._
 import crypto.MerkleTrie.MerkleTrieState
 import crypto.KeyPair
 import crypto.Hash.ops._
-import datatype.{MerkleTrieNode, UInt256Bytes}
+import datatype.{BigNat, MerkleTrieNode, UInt256Bytes}
 import model.{Address, Block, BlockHeader, Transaction}
 import model.api.{TransactionInfo, TransactionInfoBrief}
 import repository.{BlockRepository, StateRepository, TransactionRepository}
@@ -47,19 +47,67 @@ object TransactionService {
     txInfos <- txHashes.traverse[EitherT[F, String, *], TransactionInfoBrief](transactionHashToTransactionInfo)
   } yield txInfos.sortBy(-_.confirmedAt.getEpochSecond())
 
-  def get[F[_]: Monad: BlockRepository: TransactionRepository](
+  def getInfo[F[_]: Monad: BlockRepository: TransactionRepository](
     transactionHash: UInt256Bytes
   ): EitherT[F, String, Option[TransactionInfo]] = {
+
+    def toTxInfoData(
+      inputUtxos: List[(UInt256Bytes, BigInt)],
+      outputs: List[(Address, BigNat)],
+    ): List[TransactionInfo.Item] = {
+      val input1 = inputUtxos.map{
+        case (hash, amount) => (Some(hash), Some(amount))
+      } ::: List.fill(outputs.size - inputUtxos.size max 0)((None, None))
+      val output1 = outputs.map {
+        case (address, amount) => (Some(address), Some(amount))
+      } ::: List.fill(inputUtxos.size - outputs.size max 0)((None, None))
+      input1 zip output1 map { case ((inHash, inAmount), (outAddress, outAmount)) =>
+        TransactionInfo.Item(inHash, inAmount, outAddress, outAmount)
+      }
+    }
+
     implicitly[TransactionRepository[F]].get(transactionHash).flatMap{ txOption =>
-      txOption.traverse { tx => for {
+      txOption.traverse(tx => for {
         blockHashOption <- implicitly[BlockRepository[F]].findByTransaction(transactionHash)
-        blockInfoOption <- blockHashOption.traverse(BlockService.blockHashToBlockInfo[F])
+        blockInfoOption <- blockHashOption.traverse(blockHash => for {
+          blockOption <- implicitly[BlockRepository[F]].get(blockHash)
+          block <- EitherT.fromOption[F](blockOption, s"Block $blockHash not found")
+        } yield TransactionInfo.BlockInfo(
+          blockNumber = block.header.number,
+          blockHash = blockHash,
+          timestamp = block.header.timestamp,
+          stateRoot = block.header.stateRoot,
+        ))
+        sendAddressOption = ServiceUtil.transactionToSenderAddress(tx)(transactionHash)
+        inputUTXOs <- tx.value.inputs.toList.traverse{ inputTxHash =>
+          for {
+            inputTxOption <- implicitly[TransactionRepository[F]].get(inputTxHash)
+            inputTx <- EitherT.fromOption[F](inputTxOption, s"Transacion $inputTxHash not found")
+          } yield (
+            inputTxHash,
+            inputTx.value.outputs.filter{ output =>
+              Option(output._1) === sendAddressOption
+            }.map(_._2.value).sum
+          )
+        }
       } yield TransactionInfo(
         blockInfo = blockInfoOption,
-        txHash = transactionHash,
-        tx = tx,
-      )}
+        tranInfo = TransactionInfo.Summary(
+          tranHash = transactionHash,
+          totalValue = tx.value.outputs.map(_._2.value).sum
+        ),
+        tran = TransactionInfo.Data(
+          sendAddress = sendAddressOption,
+          items = toTxInfoData(inputUTXOs, tx.value.outputs.toList),
+        )
+      ))
     }
+  }
+
+  def get[F[_]: TransactionRepository](
+    transactionHash: UInt256Bytes
+  ): EitherT[F, String, Option[Transaction.Verifiable]] = {
+    implicitly[TransactionRepository[F]].get(transactionHash)
   }
 
   def addressFromSignedTransaction(transaction: Transaction.Signed): Either[String, Address] = for {

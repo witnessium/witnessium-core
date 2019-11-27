@@ -43,12 +43,12 @@ class TransactionEndpoint(
     }
   }
 
-  val Get: Endpoint[IO, TransactionInfo] = get("transaction" ::
+  val Get: Endpoint[IO, Transaction.Verifiable] = get("transaction" ::
     path[UInt256Bytes].withToString("{transactionHash}")
   ) { (transactionHash: UInt256Bytes) =>
     scribe.info(s"Receive get transaction request: $transactionHash")
     TransactionService.get[IO](transactionHash).value.map {
-      case Right(Some(txInfo)) => Ok(txInfo)
+      case Right(Some(tx)) => Ok(tx)
       case Right(None) => NotFound(new Exception(s"Not found: $transactionHash"))
       case Left(errorMsg) =>
         scribe.info(s"Get transaction $transactionHash error response: $errorMsg")
@@ -66,4 +66,17 @@ class TransactionEndpoint(
           InternalServerError(new Exception(errorMsg))
       }
     }
+
+  val GetInfo: Endpoint[IO, TransactionInfo] = get("txinfo" ::
+    path[UInt256Bytes].withToString("{transactionHash}")
+  ) { (transactionHash: UInt256Bytes) =>
+    scribe.info(s"Receive get transaction info request: $transactionHash")
+    TransactionService.getInfo[IO](transactionHash).value.map {
+      case Right(Some(txInfo)) => Ok(txInfo)
+      case Right(None) => NotFound(new Exception(s"Not found: $transactionHash"))
+      case Left(errorMsg) =>
+        scribe.info(s"Get transaction info $transactionHash error response: $errorMsg")
+        InternalServerError(new Exception(errorMsg))
+    }
+  }
 }

@@ -43,7 +43,7 @@ class BlockEndpoint()(implicit
     }
   }
 
-  val GetBlockInfo: Endpoint[IO, BlockInfo] = get("blockinfo" ::
+  val GetInfo: Endpoint[IO, BlockInfo] = get("blockinfo" ::
     path[BigNat].withToString("number")
   ) { (number: BigNat) =>
     BlockService.findByBlockNumber[IO](number).value.map {
