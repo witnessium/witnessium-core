@@ -135,7 +135,8 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val jsonEndpoint = (nodeStatusEndpoint.Get
-    :+: addressEndpoint.Get
+    :+: addressEndpoint.GetUTXO
+    :+: addressEndpoint.GetInfo
     :+: blockEndpoint.Index
     :+: blockEndpoint.Get
     :+: blockEndpoint.GetInfo

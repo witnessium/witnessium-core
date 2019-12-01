@@ -8,6 +8,7 @@ import cats.implicits._
 import crypto.MerkleTrie.{MerkleTrieState, NodeStore}
 import datatype.UInt256Bytes
 import model.{Address, Transaction}
+import model.api.{AddressInfo, TransactionInfoBrief}
 import repository.{BlockRepository, StateRepository, TransactionRepository}
 import StateRepository._
 
@@ -51,4 +52,57 @@ object AddressService{
     txs <- unusedTxs[F](address)
   } yield (balanceFromUnusedTxs(address)(txs), txs)
 
+  def txInfoToTras(currentAddress: Address)(txInfo: TransactionInfoBrief): AddressInfo.Transaction = {
+
+    def addMyAddress(items: List[AddressInfo.Item]): List[AddressInfo.Item] = items match {
+      case Nil => Nil
+      case x :: xs => x.copy(myAddress = Some(currentAddress)) :: xs
+    }
+
+    if (txInfo.inputAddress === Option(currentAddress)) {
+      //sender
+      val items = txInfo.outputs.map{ case (toAddress, amount) =>
+        AddressInfo.Item(
+          myAddress = None,
+          receiveAddress = None,
+          sendAddress = Some(toAddress),
+          value = amount,
+        )
+      }
+
+      AddressInfo.Transaction(
+        `type` = "sender",
+        tranHash = txInfo.txHash,
+        timestamp = txInfo.confirmedAt,
+        items = addMyAddress(items),
+      )
+    } else {
+      //receiver
+      val items = txInfo.outputs.map{ case (toAddress, amount) =>
+        AddressInfo.Item(
+          myAddress = None,
+          receiveAddress = Some(toAddress),
+          sendAddress = None,
+          value = amount,
+        )
+      }
+
+      AddressInfo.Transaction(
+        `type` = "receiver",
+        tranHash = txInfo.txHash,
+        timestamp = txInfo.confirmedAt,
+        items = addMyAddress(items),
+      )
+    }
+  }
+
+  def getInfo[F[_]: Sync: BlockRepository: NodeStore: TransactionRepository](
+    address: Address
+  ): EitherT[F, String, AddressInfo] = for {
+    balanceValue <- balance[F](address)
+    txinfos <- TransactionService.findByAddress[F](address, 0, Int.MaxValue)
+  } yield AddressInfo(
+    accountInfo = AddressInfo.Accoount(balance = balanceValue),
+    trans = txinfos map txInfoToTras(address),
+  )
 }

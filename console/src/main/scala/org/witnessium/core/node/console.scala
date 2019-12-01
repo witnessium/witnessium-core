@@ -35,10 +35,10 @@ object console {
     def address: Address = Address.fromPublicKey(keccak256)(keyPair.publicKey)
 
     def utxo: List[(UInt256Bytes, Long)] = {
-      val request = Request(Method.Get, s"/address/$address")
+      val request = Request(Method.Get, s"/address/utxo/$address")
       request.setContentTypeJson()
       val response = Await.result(client(request))
-      val Right(addressInfo) = decode[AddressInfo](response.contentString)
+      val Right(addressInfo) = decode[AddressUtxoInfo](response.contentString)
       for {
         transaction <- addressInfo.transactions
         (address1, amount) <- transaction.value.outputs.toList if address1 === address
