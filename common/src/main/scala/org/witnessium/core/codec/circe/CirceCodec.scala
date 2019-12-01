@@ -1,7 +1,8 @@
 package org.witnessium.core
 package codec.circe
 
-import java.time.Instant
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import scala.util.Try
 import cats.data.NonEmptyList
 import cats.syntax.functor._
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
@@ -51,9 +52,13 @@ trait CirceCodec {
     case genesis: Genesis[A] => genesis.asJson
   }
 
-  implicit val circeInstantDecoder: Decoder[Instant] = Decoder.decodeLong.map(Instant.ofEpochMilli)
+  implicit val circeInstantDecoder: Decoder[Instant] = Decoder.decodeString.emap{ (str: String) =>
+    Try(OffsetDateTime.parse(str)).toEither.map(_.toInstant()).left.map(_.getMessage)
+  }
 
-  implicit val circeInstantEncoder: Encoder[Instant] = Encoder.encodeLong.contramap(_.toEpochMilli)
+  implicit val circeInstantEncoder: Encoder[Instant] = Encoder.encodeString.contramap{
+    _.atOffset(ZoneOffset.UTC).toString()
+  }
 
   implicit val circeAddressDecoder: Decoder[Address] = Decoder.decodeString.emap{ (str: String) =>
     Address.fromHex(str)
