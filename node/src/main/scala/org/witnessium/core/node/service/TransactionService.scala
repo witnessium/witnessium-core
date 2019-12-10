@@ -35,6 +35,7 @@ object TransactionService {
     block <- EitherT.fromOption[F](blockOption, s"Block $blockHash not found")
   } yield TransactionInfoBrief(
     txHash = txHash,
+    blockNumber = block.header.number,
     confirmedAt = block.header.timestamp,
     inputAddress = ServiceUtil.transactionToSenderAddress(tx)(txHash),
     outputs = tx.value.outputs.toList,
