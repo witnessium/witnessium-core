@@ -2,6 +2,7 @@ package org.witnessium.core
 package model
 
 import scodec.bits.ByteVector
+import datatype.UInt256Bytes
 
 final case class Address private (bytes: ByteVector) extends AnyVal {
   override def toString: String = bytes.toHex
@@ -14,10 +15,7 @@ object Address {
     s"Byte size is not 20: $bytes"
   )
 
-  def fromPublicKey(hashFunction: Array[Byte] => Array[Byte])(publicKey: BigInt): Address = {
-    val hash = hashFunction(publicKey.toByteArray)
-    new Address(ByteVector(hash, hash.size - 20, 20))
-  }
+  def fromPublicKeyHash(hash: UInt256Bytes): Address = new Address(hash.toBytes takeRight 20)
 
   def fromBase64(base64: String): Either[String, Address] = for {
     bytes <- ByteVector.fromBase64Descriptive(base64)

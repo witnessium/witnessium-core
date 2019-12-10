@@ -26,36 +26,37 @@ object console {
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   val networkId: NetworkId = refineV[NonNegative](BigInt(101)).toOption.get
 
-  def keyFromPrivate(privateKey: String): KeyPair = KeyPair.fromPrivate(BigInt(privateKey))
+  def keyFromPrivate(privateKeyHex: String): KeyPair = KeyPair.fromPrivate(BigInt(privateKeyHex, 16))
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+  def address(addressHex: String): Address = Address.fromHex(addressHex).toOption.get
 
   private val txEncoder = ByteEncoder[Transaction]
-  private val txJsonEncoer = Encoder[Transaction.Verifiable]
+  private val txJsonEncoder = Encoder[Transaction.Verifiable]
 
   implicit class KeyPairOps(val keyPair: KeyPair) {
-    def address: Address = Address.fromPublicKey(keccak256)(keyPair.publicKey)
+    def address: Address = Address.fromPublicKeyHash(keyPair.publicKey.toHash)
 
-    def utxo: List[(UInt256Bytes, Long)] = {
+    def utxo: (BigInt, List[UInt256Bytes]) = {
       val request = Request(Method.Get, s"/address/utxo/$address")
       request.setContentTypeJson()
       val response = Await.result(client(request))
       val Right(addressInfo) = decode[AddressUtxoInfo](response.contentString)
-      for {
-        transaction <- addressInfo.transactions
-        (address1, amount) <- transaction.value.outputs.toList if address1 === address
-      } yield (transaction.toHash, amount.value.toLong)
+      (addressInfo.balance, addressInfo.utxoHashes)
     }
 
-    def sendTo(to: List[(Address, Long)]): Transaction.Verifiable = {
-      val (inputs, amounts) = utxo.unzip
-      val balance = amounts.sum
-      val outSum = to.map(_._2).sum
+    def sendTo(to: (Address, Long)*): Transaction.Verifiable = {
+      val to1 = to.map{ case (address, amount) => (address, BigInt(amount)) }.toList
+      val (balance, inputs) = utxo
+      val outSum = to1.map(_._2).sum
       val remainder = balance - outSum
 
-      require(remainder > 0L, s"Not enough money: sending $outSum, but only have $balance")
+      require(remainder >= 0L, s"Not enough money: sending $outSum, but only have $balance")
+
+      val to2 = if (remainder === 0L) to1 else (address, remainder) :: to1
 
       val Right(signed) = for{
-        outputs <- ((address, remainder) :: to).traverse[Either[String, *], (Address, BigNat)]{
-          case (address, amount) => refineV[NonNegative](BigInt(amount)).map((address, _))
+        outputs <- to2.traverse[Either[String, *], (Address, BigNat)]{
+          case (address, amount) => refineV[NonNegative](amount).map((address, _))
         }
         tx: Transaction = Transaction(networkId, inputs.toSet, outputs.toSet)
         sig <- keyPair.sign(crypto.keccak256(txEncoder.encode(tx).toArray))
@@ -66,7 +67,7 @@ object console {
   }
 
   implicit class VerifiableTxOps(val vtx: Transaction.Verifiable) extends AnyVal {
-    def toJson: Json = txJsonEncoer(vtx)
+    def toJson: Json = txJsonEncoder(vtx)
     def submit: String = {
       val request = Request(Method.Post, "/transaction")
       request.setContentString(toJson.toString)

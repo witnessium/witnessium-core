@@ -18,10 +18,10 @@ trait CirceCodec {
 
   implicit val circeUInt256BigIntDecoder: Decoder[UInt256BigInt] =
     Decoder.decodeString.emap { (str: String) =>
-      UInt256Refine.from[BigInt](BigInt(str))
+      UInt256Refine.from[BigInt](BigInt(str, 16))
     }
 
-  implicit val circeUInt256BigIntEncoder: Encoder[UInt256BigInt] = Encoder.encodeString.contramap(_.toString)
+  implicit val circeUInt256BigIntEncoder: Encoder[UInt256BigInt] = Encoder.encodeString.contramap(_.toString(16))
 
   implicit val circeUInt256BytesDecoder: Decoder[UInt256Bytes] = Decoder.decodeString.emap((str: String) => for {
     bytes <- ByteVector.fromHexDescriptive(str)

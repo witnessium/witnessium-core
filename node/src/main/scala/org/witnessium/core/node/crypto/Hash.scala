@@ -30,4 +30,6 @@ object Hash {
 
   implicit val merkleTrieNodeHash: Hash[MerkleTrieNode] = hash[MerkleTrieNode]
 
+  implicit val publicKeyHash: Hash[PublicKey] = hash[PublicKey]
+
 }

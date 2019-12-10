@@ -39,13 +39,13 @@ package object crypto {
   }
 
   implicit class SignatureOps(val signature: Signature) extends AnyVal {
-    def signedMessageToKey(message: Array[Byte]): Either[String, BigInt] =
+    def signedMessageToKey(message: Array[Byte]): Either[String, PublicKey] =
       signedMessageHashArrayToKey(keccak256(message))
 
-    def signedMessageHashToKey(hashValue: UInt256Bytes): Either[String, BigInt] =
+    def signedMessageHashToKey(hashValue: UInt256Bytes): Either[String, PublicKey] =
       signedMessageHashArrayToKey(hashValue.toArray)
 
-    def signedMessageHashArrayToKey(hashArray: Array[Byte]): Either[String, BigInt] = {
+    def signedMessageHashArrayToKey(hashArray: Array[Byte]): Either[String, PublicKey] = {
       val header = signature.v.value & 0xFF
       val recId = header - 27
       recoverFromSignature(recId, signature.r, signature.s, hashArray)
@@ -54,7 +54,7 @@ package object crypto {
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  private[crypto] def recoverFromSignature(recId: Int, r: UInt256BigInt, s: UInt256BigInt, message: Array[Byte]): Option[BigInt] = {
+  private[crypto] def recoverFromSignature(recId: Int, r: UInt256BigInt, s: UInt256BigInt, message: Array[Byte]): Option[PublicKey] = {
     require(recId >= 0, "recId must be positive")
     require(message != null, "message cannot be null")
 
@@ -78,7 +78,7 @@ package object crypto {
         val srInv = rInv multiply s.bigInteger mod n
         val eInvrInv = rInv multiply eInv mod n
         val q: ECPoint = ECAlgorithms.sumOfTwoMultiplies(Curve.getG(), eInvrInv, R, srInv)
-        Some(BigInt(1, q.getEncoded(false).tail))
+        PublicKey.fromByteArray(q.getEncoded(false).tail).toOption
       }
     }
   }

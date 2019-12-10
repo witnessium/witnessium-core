@@ -11,11 +11,12 @@ import org.bouncycastle.crypto.signers.{ECDSASigner, HMacDSAKCalculator}
 import org.bouncycastle.jcajce.provider.asymmetric.ec.{BCECPrivateKey, BCECPublicKey}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.math.ec.{ECPoint, FixedPointCombMultiplier}
+import shapeless.syntax.typeable._
 
-import datatype.UInt256Refine
+import datatype.{UInt256BigInt, UInt256Refine}
 import model.Signature
 
-final case class KeyPair(privateKey: BigInt, publicKey: BigInt) {
+final case class KeyPair(privateKey: UInt256BigInt, publicKey: PublicKey) {
 
   def sign(transactionHash: Array[Byte]): Either[String, Signature] = {
     val signer = new ECDSASigner(new HMacDSAKCalculator(new SHA256Digest()))
@@ -31,6 +32,8 @@ final case class KeyPair(privateKey: BigInt, publicKey: BigInt) {
       v <- refineV[Signature.HeaderRange](recId + 27)
     } yield Signature(v, r256, s256)
   }
+
+  override def toString: String = s"KeyPair(${privateKey.toBytes}, $publicKey)"
 }
 
 object KeyPair {
@@ -41,21 +44,32 @@ object KeyPair {
     Security.addProvider(new BouncyCastleProvider())
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def generate(): KeyPair = {
     val gen = KeyPairGenerator.getInstance("ECDSA", "BC")
     val spec = new ECGenParameterSpec("secp256k1")
     gen.initialize(spec, secureRandom)
     val pair = gen.generateKeyPair
-    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-    val privateKey = BigInt(pair.getPrivate.asInstanceOf[BCECPrivateKey].getD)
-    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-    val publicKey = BigInt(1, pair.getPublic.asInstanceOf[BCECPublicKey].getQ.getEncoded(false).tail)
-    KeyPair(privateKey, publicKey)
+    (for {
+      bcecPrivate <- pair.getPrivate.cast[BCECPrivateKey]
+      bcecPublic <- pair.getPublic.cast[BCECPublicKey]
+      privateKey <- UInt256Refine.from(BigInt(bcecPrivate.getD)).toOption
+      publicKey <- PublicKey.fromByteArray(bcecPublic.getQ.getEncoded(false).tail).toOption
+    } yield KeyPair(privateKey, publicKey)).getOrElse{
+      throw new Exception(s"Wrong keypair result: $pair")
+    }
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def fromPrivate(privateKey: BigInt): KeyPair = {
     val point: ECPoint = new FixedPointCombMultiplier().multiply(Curve.getG, privateKey.bigInteger mod Curve.getN)
     val encoded: Array[Byte] = point.getEncoded(false)
-    KeyPair(privateKey, BigInt(1, Arrays.copyOfRange(encoded, 1, encoded.length)))
+    (for {
+      private256 <- UInt256Refine.from(privateKey)
+      public <- PublicKey.fromByteArray(Arrays.copyOfRange(encoded, 1, encoded.length))
+    } yield KeyPair(private256, public)) match {
+      case Right(keypair) => keypair
+      case Left(msg) => throw new Exception(msg)
+    }
   }
 }

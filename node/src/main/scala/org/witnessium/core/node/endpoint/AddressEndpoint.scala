@@ -22,8 +22,8 @@ class AddressEndpoint()(implicit
   val GetUTXO: Endpoint[IO, AddressUtxoInfo] = get("address" :: "utxo" ::
     path[Address].withToString("{address}")
   ) { (address: Address) =>
-    AddressService.balanceWithUnusedTxs[IO](address).value.map {
-      case Right((balance, txs)) => Ok(AddressUtxoInfo(address, balance, txs))
+    AddressService.balanceWithUnusedTxhashes[IO](address).value.map {
+      case Right((balance, txHashes)) => Ok(AddressUtxoInfo(address, balance, txHashes))
       case Left(errorMsg) =>
         scribe.info(s"Get address UTXO of $address error response: $errorMsg")
         InternalServerError(new Exception(errorMsg))

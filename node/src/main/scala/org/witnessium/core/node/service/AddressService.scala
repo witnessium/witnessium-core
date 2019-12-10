@@ -20,14 +20,16 @@ object AddressService{
     bestHeaderOption <- implicitly[BlockRepository[F]].bestHeader
     bestHeader <- EitherT.fromOption[F](bestHeaderOption, s"No best header in finding unused tx hashes: $address")
     all <- MerkleTrieState.fromRoot(bestHeader.stateRoot).getAll
-    _ <- EitherT.right(Sync[F].pure(scribe.info(s"$all state contents: $all")))
+    _ <- EitherT.right(Sync[F].pure(scribe.info(s"=== all state contents ===")))
+    _ <- EitherT.right(Sync[F].pure(all.foreach{ (content) => scribe.info(s"$content") }))
+    _ <- EitherT.right(Sync[F].pure(scribe.info(s"==========================")))
     txHashes <- MerkleTrieState.fromRoot(bestHeader.stateRoot).get(address)
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"$address utxo: $txHashes")))
   } yield txHashes
 
   def unusedTxs[F[_]: Sync: BlockRepository: NodeStore: TransactionRepository](
     address: Address
-  ): EitherT[F, String, List[Transaction.Verifiable]] = for {
+  ): EitherT[F, String, (List[Transaction.Verifiable], List[UInt256Bytes])] = for {
     txHashes <- unusedTxHashes[F](address)
     txs <- txHashes.traverse{ txHash =>
       for {
@@ -35,7 +37,7 @@ object AddressService{
         tx <- EitherT.fromOption[F](txOption, s"Transaction $txHash is not exist")
       } yield tx
     }
-  } yield txs
+  } yield (txs, txHashes)
 
   def balanceFromUnusedTxs(address: Address)(txs: List[Transaction.Verifiable]): BigInt = (for {
     tx <- txs
@@ -44,13 +46,13 @@ object AddressService{
 
   def balance[F[_]: Sync: BlockRepository: NodeStore: TransactionRepository](
     address: Address
-  ): EitherT[F, String, BigInt] = unusedTxs[F](address) map balanceFromUnusedTxs(address)
+  ): EitherT[F, String, BigInt] = unusedTxs[F](address) map(_._1) map balanceFromUnusedTxs(address)
 
-  def balanceWithUnusedTxs[F[_]: Sync: BlockRepository: NodeStore: TransactionRepository](
+  def balanceWithUnusedTxhashes[F[_]: Sync: BlockRepository: NodeStore: TransactionRepository](
     address: Address
-  ): EitherT[F, String, (BigInt, List[Transaction.Verifiable])] = for {
-    txs <- unusedTxs[F](address)
-  } yield (balanceFromUnusedTxs(address)(txs), txs)
+  ): EitherT[F, String, (BigInt, List[UInt256Bytes])] = for {
+    (txs, txHashes) <- unusedTxs[F](address)
+  } yield (balanceFromUnusedTxs(address)(txs), txHashes)
 
   def txInfoToTras(currentAddress: Address)(txInfo: TransactionInfoBrief): AddressInfo.Transaction = {
 

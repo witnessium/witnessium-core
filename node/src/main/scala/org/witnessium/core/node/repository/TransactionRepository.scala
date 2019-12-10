@@ -39,7 +39,7 @@ object TransactionRepository {
         case Genesis(_) => EitherT.pure[F, String](())
         case Signed(sig, value) => for {
           pubKey <- EitherT.fromEither[F](sig.signedMessageHashToKey(txHash))
-          incomingAddress = Address.fromPublicKey(keccak256)(pubKey)
+          incomingAddress = Address.fromPublicKeyHash(pubKey.toHash)
           _ <- EitherT.right[String](value.inputs.toList.traverse{ txHash =>
             addressTransactionIndex.put((incomingAddress, txHash), ())
           })

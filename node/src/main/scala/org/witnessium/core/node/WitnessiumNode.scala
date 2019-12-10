@@ -148,8 +148,8 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   val policy: Cors.Policy = Cors.Policy(
     allowsOrigin = _ => Some("*"),
-    allowsMethods = _ => Some(Seq("GET", "POST")),
-    allowsHeaders = _ => Some(Seq("Accept"))
+    allowsMethods = _ => Some(Seq("GET", "OPTION", "POST")),
+    allowsHeaders = _ => Some(Seq("Accept", "Content-Type"))
   )
 
   lazy val api: Service[Request, Response] = new Cors.HttpFilter(policy).andThen(Bootstrap

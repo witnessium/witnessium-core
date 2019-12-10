@@ -4,7 +4,7 @@ package codec.byte
 import java.time.Instant
 import scala.reflect._
 
-import eu.timepit.refined.{refineMV, refineV}
+import eu.timepit.refined.refineV
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric.NonNegative
@@ -113,7 +113,7 @@ object ByteDecoder {
       count: BigInt,
       acc: List[A]
     ): Either[String, DecodeResult[List[A]]] = {
-      if (count === refineMV[NonNegative](BigInt(0))) {
+      if (count === BigInt(0)) {
         Right[String, DecodeResult[List[A]]](DecodeResult(acc.reverse, bytes))
       } else ByteDecoder[A].decode(bytes) match {
         case Left(msg) => Left[String, DecodeResult[List[A]]](msg)

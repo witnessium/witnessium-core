@@ -64,7 +64,7 @@ object ByteEncoder {
   }
 
   private def sortedListEncoder[A: ByteEncoder]: ByteEncoder[List[A]] = { list =>
-    (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode).sortBy(_.toBase64))(_ ++ _)
+    (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode).sortBy(_.toHex))(_ ++ _)
   }
 
   implicit val variableBytes: ByteEncoder[ByteVector] = { byteVector =>

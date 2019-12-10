@@ -1,8 +1,11 @@
-package org.witnessium.core.model
+package org.witnessium.core
+package model
 package api
+
+import datatype.UInt256Bytes
 
 final case class AddressUtxoInfo(
   address: Address,
   balance: BigInt,
-  transactions: List[Transaction.Verifiable],
+  utxoHashes: List[UInt256Bytes],
 )

@@ -111,8 +111,8 @@ object TransactionService {
   }
 
   def addressFromSignedTransaction(transaction: Transaction.Signed): Either[String, Address] = for {
-    (pubKey: BigInt) <- transaction.signature.signedMessageHashToKey(transaction.toHash)
-  } yield Address.fromPublicKey(crypto.keccak256)(pubKey)
+    pubKey <- transaction.signature.signedMessageHashToKey(transaction.toHash)
+  } yield Address.fromPublicKeyHash(pubKey.toHash)
 
   def submit[F[_]: Timer: Sync: BlockRepository: TransactionRepository](
     transaction: Transaction.Signed,

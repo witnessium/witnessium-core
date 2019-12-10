@@ -9,9 +9,9 @@ import cats.data.{EitherT, Kleisli, StateT}
 import cats.effect.Sync
 import cats.implicits._
 import monix.tail.Iterant
-import scodec.bits.BitVector
+import scodec.bits.{BitVector, ByteVector}
 
-import datatype.UInt256Bytes
+import datatype.{UInt256Bytes, UInt256Refine}
 import model.Address
 import MerkleTrie._
 import org.scalacheck.{Arbitrary, Gen}
@@ -37,8 +37,11 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
       (release: (A, cats.effect.ExitCase[Throwable]) => Id[Unit]): Id[B] = use(acquire)
 
     // Members declared in cats.FlatMap
-    def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = cats.FlatMap[Id].flatMap(fa)(f)
-    def tailRecM[A, B](a: A)(f: A => Id[Either[A,B]]): Id[B] = cats.FlatMap[Id].tailRecM(a)(f)
+    def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = f(fa)
+    def tailRecM[A, B](a: A)(f: A => Id[Either[A,B]]): Id[B] = f(a) match {
+      case Left(a1) => tailRecM(a1)(f)
+      case Right(b) => b
+    }
 
     // Members declared in cats.effect.Sync
     def suspend[A](thunk: => Id[A]): Id[A] = thunk
@@ -73,6 +76,21 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
       val result = (program run emptyState).map(_._2)
 
       assert(result.value == Right(Some(sampleValue)))
+    }
+
+    test("put, remove and from"){
+      val program = for {
+        _ <- put[Id, Address](sampleKey, sampleValue)
+        _ <- removeByKey[Id](sampleKey)
+        resultIterant <- from[Id, Address](BitVector.empty)
+        resultValue <- iterantToList(resultIterant)
+      } yield resultValue
+      val result = program run emptyState
+
+      assert(
+        (result.value.map(_._1.root) == Right(None)) &&
+          (result.value.map(_._2) == Right(Nil))
+      )
     }
 
     test("put several samples and from"){
@@ -209,6 +227,51 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
         println(s"==========================================")
       }
       assert(result.value == result2.value)
+    }
+
+    test("put some fixed samples and from"){
+
+      val Right(v) = for {
+        bytes <- ByteVector.fromHexDescriptive("46c36f995d3385542388294949f827be3d7dfbaa2ef61357451b1337f2328cf0")
+        refined <- UInt256Refine.from(bytes)
+      } yield refined
+
+      val samples = List(
+        "2651c2bb06b558ffe480fad693d02e976befbb12",
+        "26e5256124649dc404e2cdc71034c97cca48fdac",
+        "40ba8d2382874b93158a2ab5f0a0c8ecdb062abc",
+      ).map(Address.fromHex).map(_.toOption.get).map{ _.bytes ++ v }
+
+      val prefix = ByteVector.fromHex("2651c2bb06b558ffe480fad693d02e976befbb12").get
+
+      val expected = List((prefix ++ v).bits)
+
+      val program = for {
+        _ <- samples.traverse{ case bytes => put[Id, ByteVector](bytes.bits, ByteVector.empty)}
+        resultIterant <- from[Id, ByteVector](prefix.bits)
+        resultValue <- iterantToList(resultIterant.takeWhile{ case (k, v) =>
+          scribe.debug(s"==> $k -> $v")
+          scribe.debug(s"===> take next?: ${k startsWith prefix.bits}")
+
+          k startsWith prefix.bits
+        })
+      } yield resultValue
+      val result = (program runA emptyState).value.map{
+        (list: List[(BitVector, ByteVector)]) => list.map(_._1)
+      }
+
+      if (result != Right(expected)) {
+
+        println(s"==========================================")
+        println(s"===> samples")
+        samples foreach println
+        println(s"===> expected")
+        expected foreach println
+        println(s"===> result: ${result}")
+        println(s"==========================================")
+      }
+
+      assert(result == Right(expected))
     }
   }
 }

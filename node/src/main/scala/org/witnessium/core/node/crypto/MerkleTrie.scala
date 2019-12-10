@@ -214,7 +214,7 @@ object MerkleTrie {
             scribe.debug(s"======>[Case #1] key: $key, prefix: ${prefix.value}")
             children.unsized.toList.zipWithIndex traverse runFrom(BitVector.empty) map flatten
           }
-          else if (prefix.value.nonEmpty && !prefix.value.startsWith(key)) {
+          else if (prefix.value.nonEmpty && !key.startsWith(prefix.value)) {
             scribe.debug(s"======>[Casee #2] prefix: ${prefix.value}, key: $key")
             EitherT.rightT[F, String](Iterant.empty)
           }
@@ -248,7 +248,7 @@ object MerkleTrie {
       }
     }(EitherT.rightT[F, String](_))
   } yield {
-    scribe.info(s"Accessing node ${state.root} -> $node")
+    scribe.debug(s"Accessing node ${state.root} -> $node")
     node
   }
 

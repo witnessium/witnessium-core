@@ -13,6 +13,8 @@ object ServiceUtil {
     txHash: UInt256Bytes = transaction.toHash
   ): Option[Address] = transaction match {
     case Genesis(_) => None
-    case Signed(sig, value@_) => sig.signedMessageHashToKey(txHash).map(Address.fromPublicKey(keccak256)).toOption
+    case Signed(sig, value@_) => sig.signedMessageHashToKey(txHash).map{
+      Address fromPublicKeyHash _.toHash
+    }.toOption
   }
 }
