@@ -32,18 +32,19 @@ object TransactionRepository {
     def put(transaction: Transaction.Verifiable): EitherT[F,String,Unit] = for {
       _ <- transctionHashStore.put(transaction)
       txHash = transaction.toHash
-      _ <- EitherT.right[String](transaction.value.outputs.toList.traverse{ case (address, _) =>
-        addressTransactionIndex.put((address, txHash), ())
-      })
-      _ <- (transaction match {
-        case Genesis(_) => EitherT.pure[F, String](())
+      incomingAddressOption <- (transaction match {
+        case Genesis(_) => EitherT.pure[F, String](None)
         case Signed(sig, value) => for {
           pubKey <- EitherT.fromEither[F](sig.signedMessageHashToKey(txHash))
           incomingAddress = Address.fromPublicKeyHash(pubKey.toHash)
           _ <- EitherT.right[String](value.inputs.toList.traverse{ txHash =>
             addressTransactionIndex.put((incomingAddress, txHash), ())
           })
-        } yield ()
+        } yield Some(incomingAddress)
+      })
+      _ <- EitherT.right[String](transaction.value.outputs.toList.traverse{ case (address, _) =>
+        if (Option(address) === incomingAddressOption) Monad[F].pure(())
+        else addressTransactionIndex.put((address, txHash), ())
       })
     } yield ()
 
