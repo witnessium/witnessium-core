@@ -21,9 +21,9 @@ object BlockEndpoint {
 
     import finch._
 
-    get("block" ::
-      paramOption[BigNat]("from") ::
-      paramOption[Int]("limit")
+    get("block"
+      :: paramOption[BigNat]("from")
+      :: paramOption[Int]("limit")
     ) { (fromOption: Option[BigNat], limitOption: Option[Int]) =>
       BlockService.list[F](fromOption, limitOption getOrElse 15).value.map {
         case Right(blocks) => Ok(blocks)
