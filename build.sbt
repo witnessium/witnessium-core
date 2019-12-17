@@ -104,6 +104,7 @@ lazy val sharedSettings = Seq(
 
   // assembly plugin related
   assemblyMergeStrategy in assembly := {
+    case PathList("META-INF", xs @ _*) => MergeStrategy.discard
     case "BUILD" => MergeStrategy.discard
     case PathList(ps @ _*) if ps.last endsWith ".properties" => MergeStrategy.concat
     case x =>

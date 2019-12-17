@@ -21,7 +21,9 @@ import io.circe.parser.decode
 
 object console {
 
-  val client: Service[Request, Response] = Http.client.newService(s"localhost:8080")
+  val client: Service[Request, Response] = Http.client
+    .withTransport.tls("api.demo.witnessium.org")
+    .newService(s"api.demo.witnessium.org:443")
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   val networkId: NetworkId = refineV[NonNegative](BigInt(101)).toOption.get
