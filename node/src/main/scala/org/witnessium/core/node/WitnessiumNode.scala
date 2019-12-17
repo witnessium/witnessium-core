@@ -125,7 +125,6 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   implicit val finch: EndpointModule[IO] = io.finch.catsEffect
 
-  val blockEndpoint: BlockEndpoint = new BlockEndpoint()
   val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(localKeyPair)
 
   val htmlEndpoint: Endpoint[IO, Html] = finch.get(finch.pathEmpty) { Ok(Index.skeleton) }
@@ -136,9 +135,9 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   val jsonEndpoint = (NodeStatusEndpoint.Get[IO](nodeConfig.networkId, genesisBlock.toHash)
     :+: AddressEndpoint.GetUtxo[IO]
     :+: AddressEndpoint.GetInfo[IO]
-    :+: blockEndpoint.Index
-    :+: blockEndpoint.Get
-    :+: blockEndpoint.GetInfo
+    :+: BlockEndpoint.Index[IO]
+    :+: BlockEndpoint.Get[IO]
+    :+: BlockEndpoint.GetInfo[IO]
     :+: transactionEndpoint.Index
     :+: transactionEndpoint.Get
     :+: transactionEndpoint.Post
