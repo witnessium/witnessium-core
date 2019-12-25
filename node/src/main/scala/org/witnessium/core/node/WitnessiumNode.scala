@@ -16,7 +16,6 @@ import eu.timepit.refined.pureconfig._
 import io.circe.generic.auto._
 import io.circe.refined._
 import io.finch._
-import io.finch.catsEffect._
 import io.finch.circe._
 import pureconfig.{CamelCase, ConfigFieldMapping, SnakeCase}
 import pureconfig.error.ConfigReaderFailures
@@ -124,26 +123,23 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
    *  Setup Endpoints and API
    ****************************************/
 
-  val addressEndpoint: AddressEndpoint = new AddressEndpoint()
-  val nodeStatusEndpoint: NodeStatusEndpoint = new NodeStatusEndpoint(nodeConfig.networkId, genesisBlock.toHash)
-  val blockEndpoint: BlockEndpoint = new BlockEndpoint()
-  val transactionEndpoint: TransactionEndpoint = new TransactionEndpoint(localKeyPair)
+  implicit val finch: EndpointModule[IO] = io.finch.catsEffect
 
-  val htmlEndpoint: Endpoint[IO, Html] = get(pathEmpty) { Ok(Index.skeleton) }
+  val htmlEndpoint: Endpoint[IO, Html] = finch.get(finch.pathEmpty) { Ok(Index.skeleton) }
 
-  val javascriptEndpoint: Endpoint[IO, Buf] = new JsFileEndpoint().Get
+  val javascriptEndpoint: Endpoint[IO, Buf] = JsFileEndpoint.Get[IO]
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  val jsonEndpoint = (nodeStatusEndpoint.Get
-    :+: addressEndpoint.GetUTXO
-    :+: addressEndpoint.GetInfo
-    :+: blockEndpoint.Index
-    :+: blockEndpoint.Get
-    :+: blockEndpoint.GetInfo
-    :+: transactionEndpoint.Index
-    :+: transactionEndpoint.Get
-    :+: transactionEndpoint.Post
-    :+: transactionEndpoint.GetInfo
+  val jsonEndpoint = (NodeStatusEndpoint.Get[IO](nodeConfig.networkId, genesisBlock.toHash)
+    :+: AddressEndpoint.GetUtxo[IO]
+    :+: AddressEndpoint.GetInfo[IO]
+    :+: BlockEndpoint.Index[IO]
+    :+: BlockEndpoint.Get[IO]
+    :+: BlockEndpoint.GetInfo[IO]
+    :+: TransactionEndpoint.Index[IO]
+    :+: TransactionEndpoint.Get[IO]
+    :+: TransactionEndpoint.Post[IO](localKeyPair)
+    :+: TransactionEndpoint.GetInfo[IO]
   )
 
   val policy: Cors.Policy = Cors.Policy(
