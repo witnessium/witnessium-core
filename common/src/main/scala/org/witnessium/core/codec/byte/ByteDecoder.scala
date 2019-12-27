@@ -125,6 +125,8 @@ object ByteDecoder {
 
   implicit def listDecoder[A: ByteDecoder]: ByteDecoder[List[A]] = ByteDecoder[BigNat] flatMap sizedListDecoder[A]
 
+  implicit def optionDecoder[A: ByteDecoder]: ByteDecoder[Option[A]] = listDecoder[A].map(_.headOption)
+
   implicit def setDecoder[A: ByteDecoder]: ByteDecoder[Set[A]] = ByteDecoder[List[A]].map(_.toSet)
 
   implicit def mapDecoder[A: ByteDecoder, B: ByteDecoder]: ByteDecoder[Map[A, B]] = ByteDecoder[List[(A, B)]].map(_.toMap)
@@ -169,6 +171,11 @@ object ByteDecoder {
   implicit val uint256bytesDecoder: ByteDecoder[UInt256Bytes] = fromFixedSizeBytes(32){ UInt256Refine.from(_).toOption.get }
 
   implicit val byteDecoder: ByteDecoder[Byte] = fromFixedSizeBytes(1)(_.toByte())
+
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial")) // TODO require more type safety
+  implicit val stringDecoder: ByteDecoder[String] = bignatDecoder.flatMap{ size =>
+    fromFixedSizeBytes(size.value.toLong){ _.decodeUtf8.toOption.get }
+  }
 
   implicit val longDecoder: ByteDecoder[Long] = fromFixedSizeBytes(8)(_.toLong())
 

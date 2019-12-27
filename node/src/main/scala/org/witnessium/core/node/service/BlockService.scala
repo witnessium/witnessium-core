@@ -65,18 +65,21 @@ object BlockService {
       tranHash = txHash,
       totalValue = tx.value.outputs.map(_._2.value).sum,
       items = {
-        val (h::t) = tx.value.outputs.toList.map{ case (address, amount) => BlockInfo.TransactionItem(
+        tx.value.outputs.toList.map{ case (address, amount) => BlockInfo.TransactionItem(
           sendAddress = None,
           amt = None,
           receiveAddress = address,
           value = amount,
-        )}
-        h.copy(
-          sendAddress = senderOption,
-          amt = senderOption.map{ sender =>
-            inputs.flatMap{ input => input.value.outputs.filter(_._1 === sender).map(_._2.value) }.sum
-          }
-        ) :: t
+        )} match {
+          case h :: t =>
+            h.copy(
+              sendAddress = senderOption,
+              amt = senderOption.map{ sender =>
+                inputs.flatMap{ input => input.value.outputs.filter(_._1 === sender).map(_._2.value) }.sum
+              }
+            ) :: t
+          case Nil => Nil
+        }
       },
     )},
   )).value

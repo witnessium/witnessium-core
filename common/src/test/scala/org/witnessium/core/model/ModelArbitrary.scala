@@ -56,7 +56,7 @@ trait ModelArbitrary {
     outputSize <- Gen.choose(0, 10)
     inputs <- Gen.listOfN(inputSize, arbitraryUInt256Bytes.arbitrary)
     outputs <- Gen.listOfN(outputSize, arbitraryTuple2[Address, BigNat].arbitrary)
-  } yield Transaction(networkId, inputs.toSet, outputs.toSet))
+  } yield Transaction(networkId, inputs.toSet, outputs.toSet, None))
 
   implicit def arbitrarySigned[A](implicit aa: Arbitrary[A]): Arbitrary[Signed[A]] = Arbitrary(for {
     a <- aa.arbitrary

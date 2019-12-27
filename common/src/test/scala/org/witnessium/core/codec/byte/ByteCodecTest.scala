@@ -90,7 +90,8 @@ object ByteCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary 
             .flatMap(UInt256Refine.from[ByteVector])
             .toOption.get
           ),
-          Set((Address.fromHex("eb40bc3f706fcd6bb08c9f70a76111f2353a3553").toOption.get,bignat(10000)))
+          Set((Address.fromHex("eb40bc3f706fcd6bb08c9f70a76111f2353a3553").toOption.get,bignat(10000))),
+          None,
         )
       )
       val bytes = ByteEncoder[Transaction.Verifiable].encode(tx)

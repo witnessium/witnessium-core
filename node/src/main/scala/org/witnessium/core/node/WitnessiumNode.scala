@@ -140,6 +140,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
     :+: TransactionEndpoint.Get[IO]
     :+: TransactionEndpoint.Post[IO](localKeyPair)
     :+: TransactionEndpoint.GetInfo[IO]
+    :+: TicketEndpoint.Post[IO](nodeConfig.networkId, localKeyPair)
   )
 
   val policy: Cors.Policy = Cors.Policy(
