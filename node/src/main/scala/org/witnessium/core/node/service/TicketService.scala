@@ -8,6 +8,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import java.time.Instant
 import scala.concurrent.duration._
 import scala.util.Try
+import cats.Monad
 import cats.data.{EitherT, OptionT}
 import cats.effect.{Async, Concurrent, Resource, Sync, Timer}
 import cats.effect.concurrent.Semaphore
@@ -20,11 +21,43 @@ import scodec.bits.ByteVector
 
 import datatype.{UInt256Bytes, UInt256Refine}
 import model.{Block, BlockHeader, NetworkId, Signed, TicketData, Transaction}
+import model.api.{LicenseInfo, TicketBrief}
 import crypto.KeyPair
 import crypto.Hash.ops._
 import repository.{BlockRepository, TransactionRepository}
 
 object TicketService {
+
+  def findByLicense[F[_]: Monad: BlockRepository: TransactionRepository](
+    license: String, offset: Int, limit: Int
+  ): EitherT[F, String, LicenseInfo] = for {
+    txHashes <- implicitly[TransactionRepository[F]].listByLicense(license, offset, limit)
+    tickets <- txHashes.traverse[EitherT[F, String, *], TicketBrief](transactionHashToTicketBrief)
+  } yield {
+
+    def sum(tickets: List[TicketBrief]): BigInt = tickets.flatMap(_.amount.toList).map(_.value).sum
+    val total = sum(tickets)
+    val paid = sum(tickets.filter(_.payedAt.nonEmpty))
+
+    LicenseInfo(
+      summary = LicenseInfo.Summary(total, total - paid),
+      tickets = tickets.sortBy(-_.occuredAt.fold(0L)(_.getEpochSecond())),
+    )
+  }
+
+  def transactionHashToTicketBrief[F[_]: Monad: BlockRepository: TransactionRepository](
+    txHash: UInt256Bytes
+  ): EitherT[F, String, TicketBrief] = for {
+    txOption <- implicitly[TransactionRepository[F]].get(txHash)
+    tx <- EitherT.fromOption[F](txOption, s"Transacion $txHash not found")
+    ticket <- EitherT.fromOption[F](tx.value.ticketData, s"Transacion $txHash has no ticket data")
+  } yield TicketBrief(
+    tranHash = txHash,
+    violation = ticket.violation,
+    occuredAt = ticket.occuredAt,
+    amount = ticket.amount,
+    payedAt = ticket.payedAt,
+  )
 
   def ticketData[F[_]: Concurrent](
     fileUpload        : Option[Multipart.FileUpload],
