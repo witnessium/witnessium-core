@@ -128,12 +128,16 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   implicit val finch: EndpointModule[IO] = io.finch.catsEffect
 
-  val htmlEndpoint: Endpoint[IO, Html] = finch.get(finch.pathEmpty) { Ok(Index.skeleton) }
+  private val htmlEndpoint = {
+    import finch._
+    get(pathEmpty) { Ok(Index.skeleton) } :+: NotificationEndpoint.Get[IO]
+  }
 
-  val javascriptEndpoint: Endpoint[IO, Buf] = JsFileEndpoint.Get[IO]
+  private val javascriptEndpoint: Endpoint[IO, Buf] = JsFileEndpoint.Get[IO]
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  val jsonEndpoint = (NodeStatusEndpoint.Get[IO](nodeConfig.networkId, genesisBlock.toHash)
+  private val imgEndpoint: Endpoint[IO, Buf] = ImgFileEndpoint.Get[IO]
+
+  private val jsonEndpoint = (NodeStatusEndpoint.Get[IO](nodeConfig.networkId, genesisBlock.toHash)
     :+: AddressEndpoint.GetUtxo[IO]
     :+: AddressEndpoint.GetInfo[IO]
     :+: BlockEndpoint.Index[IO]
@@ -155,6 +159,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   lazy val api: Service[Request, Response] = new Cors.HttpFilter(policy).andThen(Bootstrap
     .serve[Text.Html](htmlEndpoint)
+    .serve[Image.Gif](imgEndpoint)
     .serve[Application.Javascript](javascriptEndpoint)
     .serve[Application.Json](jsonEndpoint)
     .toService

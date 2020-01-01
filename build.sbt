@@ -5,6 +5,7 @@ lazy val twitterVersion = "19.8.0"
 lazy val bouncycastleVersion = "1.62"
 lazy val scodecBitsVersion = "1.1.12"
 lazy val scalatagsVersion = "0.6.8"
+lazy val scalacssVersion  = "0.5.3"
 lazy val refinedVersion = "0.9.9"
 lazy val iterateeVersion = "0.19.0-M4"
 lazy val swaydbVersion = "0.10.9"
@@ -123,6 +124,8 @@ lazy val sharedSettings = Seq(
     "io.circe" %%% "circe-refined" % circeVersion,
     "io.circe" %%% "circe-parser" % circeVersion,
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+    "com.github.japgolly.scalacss" %%% "core" % scalacssVersion,
+    "com.github.japgolly.scalacss" %%% "ext-scalatags" % scalacssVersion,
     "com.outr" %%% "scribe" % scribeVersion,
     "eu.timepit" %%% "refined" % refinedVersion,
     "eu.timepit" %% "refined-cats" % refinedVersion,
@@ -132,8 +135,8 @@ lazy val sharedSettings = Seq(
     "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
     "eu.timepit" %%% "refined-scalacheck" % refinedVersion % Test,
     compilerPlugin("com.github.ghik" %% "silencer-plugin" % silencerVersion),
-    "com.github.ghik" %% "silencer-lib" % silencerVersion % Provided
-  )
+    "com.github.ghik" %% "silencer-lib" % silencerVersion % Provided,
+  ),
 )
 
 lazy val root = (project in file("."))
