@@ -6,6 +6,7 @@ import cats.Applicative
 import cats.effect.{Async, Concurrent, Timer}
 import cats.implicits._
 import com.twitter.finagle.http.exp.Multipart
+import com.twitter.io.Buf
 import io.finch._
 
 import datatype.UInt256Bytes
@@ -36,6 +37,43 @@ object TicketEndpoint{
           )
           InternalServerError(new Exception(errorMsg))
       }
+    }
+  }
+
+  def GetAttachment[F[_]: Async: TransactionRepository](implicit
+    finch: EndpointModule[F]
+  ): Endpoint[F, Buf] = {
+    import finch._
+
+    get(ApiPath.ticket.file.toEndpoint ::
+      path[String].withToString("{txHash-filename}")
+    ){ (pathTail: String) =>
+
+      scribe.info(s"Get attachment request: $pathTail")
+
+      val (front, back) = pathTail splitAt pathTail.indexOf('-')
+
+      val response: F[Output[Buf]] = (for {
+        backTail <- if (back.isEmpty) None else Some(back.tail)
+        txHash <- DecodePath[UInt256Bytes].apply(front)
+        filename <- DecodePath[String].apply(backTail)
+      } yield (txHash, filename)) match {
+        case Some((txHash,  filename)) => TicketService.getAttachment[F](txHash, filename).value.map {
+          case Right(Some(photo)) =>
+            scribe.info(s"Photo response: $photo")
+            Ok(Buf.ByteArray.Owned(photo.content.toArray))
+          case Right(None) =>
+            scribe.info(s"Photo not found")
+            NotFound(new Exception(s"Not found: $pathTail"))
+          case Left(errorMsg) =>
+            scribe.info(s"Get ticket file $pathTail error response: $errorMsg")
+            InternalServerError(new Exception(errorMsg))
+        }
+        case None =>
+          Applicative[F].pure(BadRequest(new Exception(s"Bad Request: $pathTail")))
+      }
+
+      response
     }
   }
 
@@ -90,8 +128,8 @@ object TicketEndpoint{
       ).value.flatMap[Output[UInt256Bytes]] {
         case Left(errorMsg) =>
           Applicative[F].pure(BadRequest(new Exception(errorMsg)))
-        case Right(ticketData) =>
-          TicketService.submit[F](ticketData, networkId, localKeyPair).value.map {
+        case Right((ticketData, attachment)) =>
+          TicketService.submit[F](ticketData, attachment, networkId, localKeyPair).value.map {
             case Left(errorMsg) =>
               InternalServerError(new Exception(errorMsg))
             case Right(txHash) =>

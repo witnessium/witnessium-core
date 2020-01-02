@@ -24,7 +24,9 @@ object NotificationEndpoint {
         case Right(Some(tx)) if tx.value.ticketData.flatMap(_.owner).nonEmpty =>
           Ok(SmsNoti.render(
             tx.value.ticketData.flatMap(_.owner).getOrElse(""),
-            "",
+            tx.value.ticketData.flatMap(_.photo).fold(""){ photo =>
+              s"${ApiPath.ticket.file.toUrl}/${txHash.toHex}-${photo.filename}"
+            },
             s"http://localhost:8082/tx-hash/${txHash.toBytes.toHex}"
           ))
         case Right(_) => NotFound(new Exception(s"Not found: $txHash"))

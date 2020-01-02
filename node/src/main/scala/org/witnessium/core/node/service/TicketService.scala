@@ -59,6 +59,13 @@ object TicketService {
     payedAt = ticket.payedAt,
   )
 
+  def getAttachment[F[_]: Monad: TransactionRepository](
+    txHash: UInt256Bytes,
+    filename: String,
+  ): EitherT[F, String, Option[TicketData.Photo]] = (for {
+    photo <- OptionT(implicitly[TransactionRepository[F]].getAttachment(txHash)) if photo.meta.filename === filename
+  } yield photo).value
+
   def ticketData[F[_]: Concurrent](
     fileUpload        : Option[Multipart.FileUpload],
     owner             : Option[String],
@@ -72,7 +79,7 @@ object TicketService {
     ticketTxHash      : Option[String],
     payedAt           : Option[String],
     paymentDescription: Option[String],
-  ): EitherT[F, String, TicketData] = fileUploadToPhoto[F](fileUpload).flatMap{photo =>
+  ): EitherT[F, String, (TicketData, Option[TicketData.Photo])] = fileUploadToPhoto[F](fileUpload).flatMap{ case photo =>
     EitherT.fromEither[F](for {
       instant <- datetime.traverse{ dt =>  Try(Instant.parse(dt)).toEither.left.map(_.getMessage) }
       amountBigIntOp <- amount.traverse{ a => Try(BigInt(a)).toEither.left.map(_.getMessage) }
@@ -81,9 +88,9 @@ object TicketService {
         ByteVector.fromHexDescriptive(txHash).flatMap(UInt256Refine.from[ByteVector])
       }
       payedAtInstant <- payedAt.traverse{ pa =>  Try(Instant.parse(pa)).toEither.left.map(_.getMessage) }
-    } yield TicketData(
+    } yield (TicketData(
       nonce = None,
-      photo = photo,
+      photo = photo.map(_._1),
       owner = owner,
       license = license,
       car = car,
@@ -95,10 +102,10 @@ object TicketService {
       ticketTxHash = ticketTxHashRefined,
       payedAt = payedAtInstant,
       paymentDescription = paymentDescription,
-    ))
+    ), photo.map{ case (meta, content) => TicketData.Photo(meta, content) }))
   }
 
-  def fileUploadToPhoto[F[_]: Concurrent](fileUploadOp: Option[Multipart.FileUpload]): EitherT[F, String, Option[TicketData.Photo]] = {
+  def fileUploadToPhoto[F[_]: Concurrent](fileUploadOp: Option[Multipart.FileUpload]): EitherT[F, String, Option[(TicketData.PhotoMeta, ByteVector)]] = {
     scribe.info(s"File uploaded: $fileUploadOp")
     for {
       fileUpload <- OptionT.fromOption[EitherT[F, String, *]](fileUploadOp)
@@ -110,13 +117,12 @@ object TicketService {
         })
       })
     } yield {
-      val photo = TicketData.Photo(
+      val photoMeta = TicketData.PhotoMeta(
         filename = fileUpload.fileName,
         contentType = fileUpload.contentType,
-        content = content,
       )
-      scribe.info(s"photo received: $photo")
-      photo
+      scribe.info(s"photo received: $photoMeta")
+      (photoMeta, content)
     }
   }.value
 
@@ -150,6 +156,7 @@ object TicketService {
 
   def submit[F[_]: Timer: Sync: BlockRepository: TransactionRepository](
     ticketData: TicketData,
+    attachmentOption: Option[TicketData.Photo],
     networkId: NetworkId,
     localKeyPair: KeyPair
   ): EitherT[F, String, UInt256Bytes] = for {
@@ -182,7 +189,10 @@ object TicketService {
     )
 
     _ <- implicitly[BlockRepository[F]].put(newBlock)
-    _ <- implicitly[TransactionRepository[F]].put(transaction)
+    _ <- (attachmentOption match {
+      case Some(attachment) => implicitly[TransactionRepository[F]].putWithAttachment(transaction, attachment)
+      case None => implicitly[TransactionRepository[F]].put(transaction)
+    })
   } yield txHash
 
   def makeTransaction[F[_]: Sync](

@@ -30,7 +30,7 @@ import client.interpreter.GossipClientInterpreter
 import crypto.Hash.ops._
 import datatype.{BigNat, Confidential, MerkleTrieNode, UInt256Bytes}
 import endpoint._
-import model.{Address, Block, BlockHeader, NetworkId, Transaction}
+import model.{Address, Block, BlockHeader, NetworkId, TicketData, Transaction}
 import repository._
 import repository.StateRepository._
 import service._
@@ -106,6 +106,9 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   implicit val transctionHashStore: HashStore[IO, Transaction.Verifiable] =
     new HashStoreSwayInterpreter[Transaction.Verifiable](swayDb(Paths.get("sway", "transaction")))
 
+  implicit val attachmentStore: KeyValueStore[IO, UInt256Bytes, TicketData.Photo] =
+    new StoreIndexSwayInterpreter(Paths.get("sway", "transaction", "attachment", "photo"))
+
   implicit val addressTransactionIndex: StoreIndex[IO, (Address, UInt256Bytes), Unit] =
     new StoreIndexSwayInterpreter(Paths.get("sway", "transaction", "index", "address"))
 
@@ -160,6 +163,7 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   lazy val api: Service[Request, Response] = new Cors.HttpFilter(policy).andThen(Bootstrap
     .serve[Text.Html](htmlEndpoint)
     .serve[Image.Gif](imgEndpoint)
+    .serve[Image.Jpeg](TicketEndpoint.GetAttachment[IO])
     .serve[Application.Javascript](javascriptEndpoint)
     .serve[Application.Json](jsonEndpoint)
     .toService

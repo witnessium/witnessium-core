@@ -8,7 +8,7 @@ import datatype.{BigNat, UInt256Bytes}
 
 final case class TicketData(
   nonce             : Option[BigNat],
-  photo             : Option[TicketData.Photo],
+  photo             : Option[TicketData.PhotoMeta],
   owner             : Option[String],
   license           : Option[String],
   car               : Option[String],
@@ -24,9 +24,13 @@ final case class TicketData(
 
 object TicketData {
 
-  final case class Photo(
+  final case class PhotoMeta(
     filename: String,
     contentType: String,
+  )
+
+  final case class Photo(
+    meta: PhotoMeta,
     content: ByteVector,
   )
 }

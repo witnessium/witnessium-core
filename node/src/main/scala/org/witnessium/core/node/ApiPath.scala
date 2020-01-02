@@ -1,14 +1,15 @@
 package org.witnessium.core.node
 
 import cats.data.NonEmptyList
-import cats.effect.IO
-import io.finch.Endpoint
-import io.finch.catsEffect
+import cats.effect.Sync
+import io.finch.{Endpoint, EndpointModule}
 import shapeless.HNil
 
 trait ApiPath {
   def path: NonEmptyList[String]
-  def toEndpoint: Endpoint[IO, HNil] = path.map(catsEffect.path).reduceLeft(_ :: _)
+  def toEndpoint[F[_]: Sync](implicit
+    finch: EndpointModule[F]
+  ): Endpoint[F, HNil] = path.map(finch.path).reduceLeft(_ :: _)
   def toUrl: String = path.map("/" + _).toList.mkString
 }
 
@@ -32,6 +33,12 @@ object ApiPath {
 
     object block extends ApiPath {
       override val path = NonEmptyList.of("gossip", "block")
+    }
+  }
+
+  object ticket {
+    object file extends ApiPath {
+      override val path = NonEmptyList.of("ticket", "file")
     }
   }
 }
