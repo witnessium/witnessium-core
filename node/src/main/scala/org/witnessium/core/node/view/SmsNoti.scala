@@ -36,6 +36,7 @@ object SmsNoti {
     private[view] val info = style(
       position.relative,
       maxHeight(130.px),
+      maxWidth(200.px),
       border(1.px, solid, c"#999"),
       top(5.px),
       marginBottom(10.px),
