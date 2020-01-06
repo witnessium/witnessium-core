@@ -41,7 +41,9 @@ object TicketService {
 
     LicenseInfo(
       summary = LicenseInfo.Summary(total, total - paid),
-      tickets = tickets.sortBy(-_.occuredAt.fold(0L)(_.getEpochSecond())),
+      tickets = tickets.sortBy{ ticket =>
+        -ticket.occuredAt.orElse(ticket.payedAt).fold(0L)(_.getEpochSecond())
+      },
     )
   }
 
