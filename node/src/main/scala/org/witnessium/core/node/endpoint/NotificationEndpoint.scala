@@ -21,11 +21,11 @@ object NotificationEndpoint {
     get("notification" :: path[UInt256Bytes].withToString("{txHash}")){ (txHash: UInt256Bytes) =>
 
       TransactionService.get[F](txHash).value.map{
-        case Right(Some(tx)) if tx.value.ticketData.flatMap(_.owner).nonEmpty =>
+        case Right(Some(tx)) if tx.value.ticketData.flatMap(_.driverName).nonEmpty =>
           Ok(SmsNoti.render(
-            tx.value.ticketData.flatMap(_.owner).getOrElse(""),
-            tx.value.ticketData.flatMap(_.photo).fold(""){ photo =>
-              s"${ApiPath.ticket.file.toUrl}/${txHash.toHex}-${photo.filename}"
+            tx.value.ticketData.flatMap(_.driverName).getOrElse(""),
+            tx.value.ticketData.flatMap(_.footage).fold(""){ footage =>
+              s"${ApiPath.ticket.file.toUrl}/${txHash.toHex}-${footage.filename}"
             },
             s"http://localhost:8082/tx-hash/${txHash.toBytes.toHex}"
           ))

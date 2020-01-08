@@ -28,21 +28,21 @@ import repository.{BlockRepository, TransactionRepository}
 
 object TicketService {
 
-  def findByLicense[F[_]: Monad: BlockRepository: TransactionRepository](
-    license: String, offset: Int, limit: Int
+  def findByLicenseNo[F[_]: Monad: BlockRepository: TransactionRepository](
+    licenseNo: String, offset: Int, limit: Int
   ): EitherT[F, String, LicenseInfo] = for {
-    txHashes <- implicitly[TransactionRepository[F]].listByLicense(license, offset, limit)
+    txHashes <- implicitly[TransactionRepository[F]].listByLicenseNo(licenseNo, offset, limit)
     tickets <- txHashes.traverse[EitherT[F, String, *], TicketBrief](transactionHashToTicketBrief)
   } yield {
 
-    def sum(tickets: List[TicketBrief]): BigInt = tickets.flatMap(_.amount.toList).map(_.value).sum
+    def sum(tickets: List[TicketBrief]): BigInt = tickets.flatMap(_.penalty.toList).map(_.value).sum
     val total = sum(tickets)
-    val paid = sum(tickets.filter(_.payedAt.nonEmpty))
+    val paid = sum(tickets.filter(_.paymentDate.nonEmpty))
 
     LicenseInfo(
       summary = LicenseInfo.Summary(total, total - paid),
       tickets = tickets.sortBy{ ticket =>
-        -ticket.occuredAt.orElse(ticket.payedAt).fold(0L)(_.getEpochSecond())
+        -ticket.date.orElse(ticket.paymentDate).fold(0L)(_.getEpochSecond())
       },
     )
   }
@@ -55,59 +55,59 @@ object TicketService {
     ticket <- EitherT.fromOption[F](tx.value.ticketData, s"Transacion $txHash has no ticket data")
   } yield TicketBrief(
     tranHash = txHash,
-    violation = ticket.violation,
-    occuredAt = ticket.occuredAt,
-    amount = ticket.amount,
-    payedAt = ticket.payedAt,
+    offense = ticket.offense,
+    date = ticket.date,
+    penalty = ticket.penalty,
+    paymentDate = ticket.paymentDate,
   )
 
   def getAttachment[F[_]: Monad: TransactionRepository](
     txHash: UInt256Bytes,
     filename: String,
-  ): EitherT[F, String, Option[TicketData.Photo]] = (for {
-    photo <- OptionT(implicitly[TransactionRepository[F]].getAttachment(txHash)) if photo.meta.filename === filename
-  } yield photo).value
+  ): EitherT[F, String, Option[TicketData.Footage]] = (for {
+    footage <- OptionT(implicitly[TransactionRepository[F]].getAttachment(txHash)) if footage.meta.filename === filename
+  } yield footage).value
 
   def ticketData[F[_]: Concurrent](
-    fileUpload        : Option[Multipart.FileUpload],
-    owner             : Option[String],
-    license           : Option[String],
-    car               : Option[String],
-    phone             : Option[String],
-    violation         : Option[String],
-    location          : Option[String],
-    datetime          : Option[String],
-    amount            : Option[String],
-    ticketTxHash      : Option[String],
-    payedAt           : Option[String],
-    paymentDescription: Option[String],
-  ): EitherT[F, String, (TicketData, Option[TicketData.Photo])] = fileUploadToPhoto[F](fileUpload).flatMap{ case photo =>
-    EitherT.fromEither[F](for {
-      instant <- datetime.traverse{ dt =>  Try(Instant.parse(dt)).toEither.left.map(_.getMessage) }
-      amountBigIntOp <- amount.traverse{ a => Try(BigInt(a)).toEither.left.map(_.getMessage) }
-      amountRefined <- amountBigIntOp.traverse{ abi => refineV[NonNegative](abi) }
+    fileUpload  : Option[Multipart.FileUpload],
+    driverName : Option[String],
+    licenseNo   : Option[String],
+    plateNo     : Option[String],
+    contactInfo : Option[String],
+    offense     : Option[String],
+    location    : Option[String],
+    date        : Option[String],
+    penalty     : Option[String],
+    ticketTxHash: Option[String],
+    paymentDate : Option[String],
+    paymentType : Option[String],
+  ): EitherT[F, String, (TicketData, Option[TicketData.Footage])] = fileUploadToFootage[F](fileUpload).flatMap{
+    case footage => EitherT.fromEither[F](for {
+      instant <- date.traverse{ dt =>  Try(Instant.parse(dt)).toEither.left.map(_.getMessage) }
+      penaltyBigIntOp <- penalty.traverse{ a => Try(BigInt(a)).toEither.left.map(_.getMessage) }
+      penaltyRefined <- penaltyBigIntOp.traverse{ pbi => refineV[NonNegative](pbi) }
       ticketTxHashRefined <- ticketTxHash.traverse{ txHash =>
         ByteVector.fromHexDescriptive(txHash).flatMap(UInt256Refine.from[ByteVector])
       }
-      payedAtInstant <- payedAt.traverse{ pa =>  Try(Instant.parse(pa)).toEither.left.map(_.getMessage) }
+      paymentDateInstant <- paymentDate.traverse{ pa =>  Try(Instant.parse(pa)).toEither.left.map(_.getMessage) }
     } yield (TicketData(
       nonce = None,
-      photo = photo.map(_._1),
-      owner = owner,
-      license = license,
-      car = car,
-      phone = phone,
-      violation = violation,
-      occuredAt = instant,
+      footage = footage.map(_._1),
+      driverName = driverName,
+      licenseNo = licenseNo,
+      plateNo = plateNo,
+      contactInfo = contactInfo,
+      offense = offense,
       location = location,
-      amount = amountRefined,
+      date = instant,
+      penalty = penaltyRefined,
       ticketTxHash = ticketTxHashRefined,
-      payedAt = payedAtInstant,
-      paymentDescription = paymentDescription,
-    ), photo.map{ case (meta, content) => TicketData.Photo(meta, content) }))
+      paymentDate = paymentDateInstant,
+      paymentType = paymentType,
+    ), footage.map{ case (meta, content) => TicketData.Footage(meta, content) }))
   }
 
-  def fileUploadToPhoto[F[_]: Concurrent](fileUploadOp: Option[Multipart.FileUpload]): EitherT[F, String, Option[(TicketData.PhotoMeta, ByteVector)]] = {
+  def fileUploadToFootage[F[_]: Concurrent](fileUploadOp: Option[Multipart.FileUpload]): EitherT[F, String, Option[(TicketData.FootageMeta, ByteVector)]] = {
     scribe.info(s"File uploaded: $fileUploadOp")
     for {
       fileUpload <- OptionT.fromOption[EitherT[F, String, *]](fileUploadOp)
@@ -119,12 +119,12 @@ object TicketService {
         })
       })
     } yield {
-      val photoMeta = TicketData.PhotoMeta(
+      val footageMeta = TicketData.FootageMeta(
         filename = fileUpload.fileName,
         contentType = fileUpload.contentType,
       )
-      scribe.info(s"photo received: $photoMeta")
-      (photoMeta, content)
+      scribe.info(s"footage received: $footageMeta")
+      (footageMeta, content)
     }
   }.value
 
@@ -158,7 +158,7 @@ object TicketService {
 
   def submit[F[_]: Timer: Sync: BlockRepository: TransactionRepository](
     ticketData: TicketData,
-    attachmentOption: Option[TicketData.Photo],
+    attachmentOption: Option[TicketData.Footage],
     networkId: NetworkId,
     localKeyPair: KeyPair
   ): EitherT[F, String, UInt256Bytes] = for {
@@ -171,7 +171,7 @@ object TicketService {
     txHash = transaction.toHash
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"generating new block with transactions: $txHash")))
     now <- EitherT.right[String](Timer[F].clock.realTime(MILLISECONDS))
-    fromAddress = ticketData.license
+    fromAddress = ticketData.licenseNo
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"From address: $fromAddress")))
 
     newBlockHeader = BlockHeader(
@@ -189,7 +189,6 @@ object TicketService {
       transactionHashes = Set(txHash),
       votes = Set(signature),
     )
-
     _ <- implicitly[BlockRepository[F]].put(newBlock)
     _ <- (attachmentOption match {
       case Some(attachment) => implicitly[TransactionRepository[F]].putWithAttachment(transaction, attachment)

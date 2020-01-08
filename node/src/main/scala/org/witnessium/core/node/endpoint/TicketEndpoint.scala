@@ -25,15 +25,15 @@ object TicketEndpoint{
     import finch._
 
     get("ticket"
-      :: param[String]("license")
+      :: param[String]("licenseNo")
       :: paramOption[Int]("offset")
       :: paramOption[Int]("limit")
-    ) { (license: String, offsetOption: Option[Int], limitOption: Option[Int]) =>
-      TicketService.findByLicense[F](license, offsetOption getOrElse 0, limitOption getOrElse 10).value.map {
+    ) { (licenseNo: String, offsetOption: Option[Int], limitOption: Option[Int]) =>
+      TicketService.findByLicenseNo[F](licenseNo, offsetOption getOrElse 0, limitOption getOrElse 10).value.map {
         case Right(licneseInfo) => Ok(licneseInfo)
         case Left(errorMsg) =>
           scribe.info(
-            s"Index ticket with license: $license offset:$offsetOption limit:limitOption error response: $errorMsg"
+            s"Index ticket with license no.: $licenseNo offset:$offsetOption limit:limitOption error response: $errorMsg"
           )
           InternalServerError(new Exception(errorMsg))
       }
@@ -85,46 +85,46 @@ object TicketEndpoint{
     import finch._
 
     post("ticket"
-      :: multipartFileUploadOption("photo")
-      :: multipartAttributeOption[String]("owner")
-      :: multipartAttributeOption[String]("license")
-      :: multipartAttributeOption[String]("car")
-      :: multipartAttributeOption[String]("phone")
-      :: multipartAttributeOption[String]("violation")
+      :: multipartFileUploadOption("footage")
+      :: multipartAttributeOption[String]("driverName")
+      :: multipartAttributeOption[String]("licenseNo")
+      :: multipartAttributeOption[String]("plateNo")
+      :: multipartAttributeOption[String]("contactInfo")
+      :: multipartAttributeOption[String]("offense")
       :: multipartAttributeOption[String]("location")
-      :: multipartAttributeOption[String]("datetime")
-      :: multipartAttributeOption[String]("amount")
+      :: multipartAttributeOption[String]("date")
+      :: multipartAttributeOption[String]("penalty")
       :: multipartAttributeOption[String]("ticketTxHash")
-      :: multipartAttributeOption[String]("payedAt")
-      :: multipartAttributeOption[String]("paymentDescription")
+      :: multipartAttributeOption[String]("paymentDate")
+      :: multipartAttributeOption[String]("paymentType")
     ) { (
-      fileUpload        : Option[Multipart.FileUpload],
-      owner             : Option[String],
-      license           : Option[String],
-      car               : Option[String],
-      phone             : Option[String],
-      violation         : Option[String],
-      location          : Option[String],
-      datetime          : Option[String],
-      amount            : Option[String],
-      ticketTxHash      : Option[String],
-      payedAt           : Option[String],
-      paymentDescription: Option[String],
+      fileUpload  : Option[Multipart.FileUpload],
+      driverName  : Option[String],
+      licenseNo   : Option[String],
+      plateNo     : Option[String],
+      contactInfo : Option[String],
+      offense     : Option[String],
+      location    : Option[String],
+      date        : Option[String],
+      penalty     : Option[String],
+      ticketTxHash: Option[String],
+      paymentDate : Option[String],
+      paymentType : Option[String],
     ) =>
 
       TicketService.ticketData[F](
         fileUpload = fileUpload,
-        owner = owner,
-        license = license,
-        car = car,
-        phone = phone,
-        violation = violation,
+        driverName = driverName,
+        licenseNo = licenseNo,
+        plateNo = plateNo,
+        contactInfo = contactInfo,
+        offense = offense,
         location = location,
-        datetime = datetime,
-        amount = amount,
+        date = date,
+        penalty = penalty,
         ticketTxHash = ticketTxHash,
-        payedAt = payedAt,
-        paymentDescription = paymentDescription,
+        paymentDate = paymentDate,
+        paymentType = paymentType,
       ).value.flatMap[Output[UInt256Bytes]] {
         case Left(errorMsg) =>
           Applicative[F].pure(BadRequest(new Exception(errorMsg)))
