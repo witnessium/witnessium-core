@@ -75,7 +75,7 @@ object ByteDecoder {
     Either.cond( bytes.nonEmpty, bytes, "Empty bytes").flatMap { nonEmptyBytes =>
       val head: Int = nonEmptyBytes.head & 0xff
       val tail: ByteVector = nonEmptyBytes.tail
-      if (head < 0x80) Right[String, DecodeResult[BigNat]](DecodeResult(nat(BigInt(head)), tail))
+      if (head <= 0x80) Right[String, DecodeResult[BigNat]](DecodeResult(nat(BigInt(head)), tail))
       else if (head <= 0xf8) {
         val size = head - 0x80
         if (tail.size < size) Left[String, DecodeResult[BigNat]](s"required byte size $size, but $tail")

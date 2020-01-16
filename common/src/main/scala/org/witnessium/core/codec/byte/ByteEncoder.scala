@@ -36,8 +36,9 @@ object ByteEncoder {
   ): ByteEncoder[A] = beb.value contramap agen.to
 
   implicit val bignatEncoder: ByteEncoder[BigNat] = { bignat =>
-    val bytes = ByteVector.view(bignat.toByteArray)
-    if (bignat < 0x80) bytes
+    val bytes = ByteVector.view(bignat.toByteArray).dropWhile(_ === 0x00.toByte)
+    if (bytes.isEmpty) ByteVector(0x00.toByte)
+    else if (bignat <= 0x80) bytes
     else {
       val size = bytes.size
       if (size < (0xf8 - 0x80) + 1) ByteVector.fromByte((size + 0x80).toByte) ++ bytes
