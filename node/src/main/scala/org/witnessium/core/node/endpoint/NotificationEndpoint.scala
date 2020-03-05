@@ -27,7 +27,7 @@ object NotificationEndpoint {
             tx.value.ticketData.flatMap(_.footage).fold(""){ footage =>
               s"${ApiPath.ticket.file.toUrl}/${txHash.toHex}-${footage.filename}"
             },
-            s"http://localhost:8082/tx-hash/${txHash.toBytes.toHex}"
+            s"https://explorer.traffic.demo.witnessium.org/tx-hash/${txHash.toBytes.toHex}"
           ))
         case Right(_) => NotFound(new Exception(s"Not found: $txHash"))
         case Left(errorMsg) =>
