@@ -59,8 +59,9 @@ object SmsNoti {
         div(
           LocalStyle.section01,
           div(
-            p(s"$name!"),
-            p(s"Ticket has been issued for vilation of traffic requlations."),
+            p(s"NOTICE OF DELINQUENT TRAFFIC VIOLATION"),
+            p(s"Dear ${name}."),
+            p(s"This notice is to inform you that you have been cited with a traffic violation."),
             p(img(
               LocalStyle.info,
               src:=imagePath
