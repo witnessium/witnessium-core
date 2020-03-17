@@ -16,6 +16,7 @@ trait TransactionRepository[F[_]] {
   def get(transactionHash: UInt256Bytes): EitherT[F, String, Option[Transaction.Verifiable]]
   def put(transaction: Transaction.Verifiable): EitherT[F, String, Unit]
 
+  def buildIndex(transaction: Transaction.Verifiable): F[Unit]
   def listByAddress(address: Address, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]]
 }
 
@@ -31,26 +32,30 @@ object TransactionRepository {
 
     def put(transaction: Transaction.Verifiable): EitherT[F,String,Unit] = for {
       _ <- transctionHashStore.put(transaction)
-      txHash = transaction.toHash
-      incomingAddressOption <- (transaction match {
-        case Genesis(_) => EitherT.pure[F, String](None)
-        case Signed(sig, value) => for {
-          pubKey <- EitherT.fromEither[F](sig.signedMessageHashToKey(txHash))
-          incomingAddress = Address.fromPublicKeyHash(pubKey.toHash)
-          _ <- EitherT.right[String](value.inputs.toList.traverse{ txHash =>
-            addressTransactionIndex.put((incomingAddress, txHash), ())
-          })
-        } yield Some(incomingAddress)
-      })
-      _ <- EitherT.right[String](transaction.value.outputs.toList.traverse{ case (address, _) =>
-        if (Option(address) === incomingAddressOption) Monad[F].pure(())
-        else addressTransactionIndex.put((address, txHash), ())
-      })
+      _ <- EitherT.right[String](buildIndex(transaction))
     } yield ()
 
-    def listByAddress(address: Address, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]] =
-      addressTransactionIndex.from((address, UInt256Refine.EmptyBytes), offset, limit).map(_.map{
-        case ((address@_, txHash), ()) => txHash
+    def buildIndex(transaction: Transaction.Verifiable): F[Unit] = {
+      val txHash = transaction.toHash
+      val incomingAddressOption: Option[Address] = (transaction match {
+        case Genesis(_) => None
+        case Signed(sig, value@_) => sig.signedMessageHashToKey(transaction.toHash).map {
+          publicKey => Address.fromPublicKeyHash(publicKey.toHash)
+        }.toOption
       })
+      val outputAddresses: Set[Address] = transaction.value.outputs.map(_._1)
+      val addressSet: Set[Address] = outputAddresses ++ incomingAddressOption.toList
+
+      addressSet.toList.traverse{ address =>
+        addressTransactionIndex.put((address, txHash), ())
+      }.map(_ => ())
+    }
+
+    def listByAddress(address: Address, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]] =
+      addressTransactionIndex.from((address, UInt256Refine.EmptyBytes), offset, limit).map{ list =>
+        for {
+          ((address1, txHash), ()) <- list if address1 === address
+        } yield txHash
+      }
   }
 }
