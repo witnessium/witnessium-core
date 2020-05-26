@@ -63,5 +63,9 @@ object CirceCodecTest extends TestSuite with UTestScalaCheck with ModelArbitrary
     test("NodeStatus") {
       successfulRoundTrip[NodeStatus].checkUTest()
     }
+
+    test("NameState") {
+      successfulRoundTrip[NameState].checkUTest()
+    }
   }
 }

@@ -26,9 +26,44 @@ trait ModelArbitrary {
     bytes <- Gen.containerOfN[Array, Byte](32, Arbitrary.arbitrary[Byte])
   } yield UInt256Refine.from(ByteVector.view(bytes)).toOption.get)
 
+  implicit val arbitraryName: Arbitrary[Account.Name] = Arbitrary(for {
+    size <- Gen.choose(6, 12)
+    bytes <- Gen.containerOfN[Array, Byte](size, Arbitrary.arbitrary[Byte])
+  } yield new Account.Name(ByteVector.view(bytes)))
+
+  implicit val arbitraryAccount: Arbitrary[Account] = Arbitrary(Gen.frequency(
+    (1, arbitraryAccountNamed.arbitrary),
+    (9, arbitraryAccountUnnamed.arbitrary),
+  ))
+
+  implicit val arbitraryAccountNamed: Arbitrary[Account.Named] = Arbitrary(for {
+    name <- arbitraryName.arbitrary
+  } yield Account.Named(name))
+
+  implicit val arbitraryAccountUnnamed: Arbitrary[Account.Unnamed] = Arbitrary(
+    arbitraryAddress.arbitrary.map(Account.Unnamed(_))
+  )
+
+  implicit val arbitraryNameState: Arbitrary[NameState] = Arbitrary(for {
+    size <- Gen.choose(1, 3)
+    guardianList <- Gen.listOfN(size, arbitraryAccount.arbitrary)
+    addresses <- arbitraryMultiSig.arbitrary
+  } yield NameState(guardianList.headOption, addresses))
+
   implicit val arbitraryAddress: Arbitrary[Address] = Arbitrary(for {
     bytes <- Gen.containerOfN[Array, Byte](20, Arbitrary.arbitrary[Byte])
   } yield Address(ByteVector.view(bytes)).toOption.get)
+
+  private def toBigNat(n: Int): BigNat = refineV[NonNegative](BigInt(n)).toOption.get
+
+  implicit val arbitraryMultiSig: Arbitrary[MultiSig] = Arbitrary(for {
+    size <- Gen.choose(1, 3)
+    weights <- Gen.mapOfN[Address, BigNat](size, (for {
+      address <- arbitraryAddress.arbitrary
+      weight <- Gen.choose(1, 3)
+    } yield (address, toBigNat(weight))))
+    threshold <- Gen.choose(1, weights.toList.map(_._2.value.toInt).sum)
+  } yield MultiSig(weights, toBigNat(threshold)))
 
   implicit def arbitraryTuple2[A:Arbitrary, B:Arbitrary]: Arbitrary[(A, B)] = Arbitrary(for{
     a <- Arbitrary.arbitrary[A]
@@ -55,7 +90,7 @@ trait ModelArbitrary {
     inputSize <- Gen.choose(0, 10)
     outputSize <- Gen.choose(0, 10)
     inputs <- Gen.listOfN(inputSize, arbitraryUInt256Bytes.arbitrary)
-    outputs <- Gen.listOfN(outputSize, arbitraryTuple2[Address, BigNat].arbitrary)
+    outputs <- Gen.listOfN(outputSize, arbitraryTuple2[Account, BigNat].arbitrary)
   } yield Transaction(networkId, inputs.toSet, outputs.toSet))
 
   implicit def arbitrarySigned[A](implicit aa: Arbitrary[A]): Arbitrary[Signed[A]] = Arbitrary(for {

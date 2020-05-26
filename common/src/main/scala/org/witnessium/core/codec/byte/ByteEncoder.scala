@@ -64,6 +64,8 @@ object ByteEncoder {
     (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode))(_ ++ _)
   }
 
+  implicit def optionEncoder[A: ByteEncoder]: ByteEncoder[Option[A]] = listEncoder[A].contramap(_.toList)
+
   private def sortedListEncoder[A: ByteEncoder]: ByteEncoder[List[A]] = { list =>
     (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode).sortBy(_.toHex))(_ ++ _)
   }

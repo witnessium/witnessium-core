@@ -1,20 +1,20 @@
 lazy val finchVersion = "0.31.0"
-lazy val circeVersion = "0.11.1"
+lazy val circeVersion = "0.13.0"
 lazy val monixVersion = "3.1.0"
 lazy val twitterVersion = "19.8.0"
 lazy val bouncycastleVersion = "1.62"
-lazy val scodecBitsVersion = "1.1.12"
-lazy val scalatagsVersion = "0.6.8"
-lazy val refinedVersion = "0.9.9"
+lazy val scodecBitsVersion = "1.1.14"
+lazy val scalatagsVersion = "0.9.1"
+lazy val refinedVersion = "0.9.14"
 lazy val iterateeVersion = "0.19.0-M4"
 lazy val swaydbVersion = "0.10.9"
 lazy val pureconfigVersion = "0.11.1"
 lazy val vueVersion = "2.6.10"
-lazy val scalajsJavaTimeVersion = "0.2.5"
+lazy val scalajsJavaTimeVersion = "1.0.0"
 
-lazy val utestVersion = "0.7.1"
-lazy val scalacheckVersion = "1.14.0"
-lazy val scribeVersion = "2.7.6"
+lazy val utestVersion = "0.7.4"
+lazy val scalacheckVersion = "1.14.3"
+lazy val scribeVersion = "2.7.12"
 lazy val acyclicVersion = "0.2.0"
 lazy val silencerVersion = "1.4.1"
 lazy val splainVersion = "0.4.1"
@@ -185,6 +185,7 @@ lazy val js = (project in file("js"))
     )
   )
   .enablePlugins(ScalaJSPlugin)
+  .enablePlugins(JSDependenciesPlugin)
   .dependsOn(common.js)
 
 lazy val common = crossProject(JSPlatform, JVMPlatform)
@@ -193,6 +194,7 @@ lazy val common = crossProject(JSPlatform, JVMPlatform)
   .settings(
     name := "witnessium-core-common",
   )
+  .enablePlugins(JSDependenciesPlugin)
   .jsSettings(
     libraryDependencies += "org.scala-js" %%% "scalajs-java-time" % scalajsJavaTimeVersion,
   )

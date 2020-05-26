@@ -1,8 +1,6 @@
 package org.witnessium.core
 package codec.circe
 
-import java.time.{Instant, OffsetDateTime, ZoneOffset}
-import scala.util.Try
 import cats.data.NonEmptyList
 import cats.syntax.functor._
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
@@ -12,7 +10,7 @@ import io.circe.syntax._
 import scodec.bits.{BitVector, ByteVector}
 
 import datatype.{UInt256BigInt, UInt256Bytes, UInt256Refine}
-import model.{Address, Genesis, Signed, Verifiable}
+import model.{Account, Address, Genesis, Signed, Verifiable}
 
 trait CirceCodec {
 
@@ -52,14 +50,6 @@ trait CirceCodec {
     case genesis: Genesis[A] => genesis.asJson
   }
 
-  implicit val circeInstantDecoder: Decoder[Instant] = Decoder.decodeString.emap{ (str: String) =>
-    Try(OffsetDateTime.parse(str)).toEither.map(_.toInstant()).left.map(_.getMessage)
-  }
-
-  implicit val circeInstantEncoder: Encoder[Instant] = Encoder.encodeString.contramap{
-    _.atOffset(ZoneOffset.UTC).toString()
-  }
-
   implicit val circeAddressDecoder: Decoder[Address] = Decoder.decodeString.emap{ (str: String) =>
     Address.fromHex(str)
   }
@@ -72,5 +62,28 @@ trait CirceCodec {
   } yield refined)
 
   implicit val circeUInt256BytesKeyEncoder: KeyEncoder[UInt256Bytes] = KeyEncoder.instance(_.toBytes.toBase64)
+
+  implicit val circeAccountKeyDecoder: KeyDecoder[Account] = KeyDecoder.instance{
+    case str: String if str startsWith "0x" =>
+      Address.fromHex(str drop 2).toOption.map(Account.Unnamed(_))
+    case str: String if str startsWith "00" =>
+      Account.Name.from(str drop 1).toOption.map(Account.Named(_))
+    case str: String =>
+      Account.Name.from(str).toOption.map(Account.Named(_))
+  }
+
+  implicit val circeAccountKeyEncoder: KeyEncoder[Account] = KeyEncoder.instance {
+    case Account.Named(name) =>
+      val str = name.toString
+      if (str startsWith "0") "0" ++ str else str
+    case Account.Unnamed(address) =>
+      "0x" ++ address.toString
+  }
+
+  implicit val circeAddressKeyDecoder: KeyDecoder[Address] = KeyDecoder.instance{ (str: String) =>
+    Address.fromHex(str).toOption
+  }
+
+  implicit val circeAddressKeyEncoder: KeyEncoder[Address] = KeyEncoder.instance(_.toString)
 
 }

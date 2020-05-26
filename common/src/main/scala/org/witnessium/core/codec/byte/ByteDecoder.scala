@@ -125,6 +125,8 @@ object ByteDecoder {
 
   implicit def listDecoder[A: ByteDecoder]: ByteDecoder[List[A]] = ByteDecoder[BigNat] flatMap sizedListDecoder[A]
 
+  implicit def optionDecoder[A: ByteDecoder]: ByteDecoder[Option[A]] = listDecoder[A].map(_.headOption)
+
   implicit def setDecoder[A: ByteDecoder]: ByteDecoder[Set[A]] = ByteDecoder[List[A]].map(_.toSet)
 
   implicit def mapDecoder[A: ByteDecoder, B: ByteDecoder]: ByteDecoder[Map[A, B]] = ByteDecoder[List[(A, B)]].map(_.toMap)
