@@ -61,13 +61,13 @@ object ByteEncoder {
   }
 
   implicit def listEncoder[A: ByteEncoder]: ByteEncoder[List[A]] = { list =>
-    (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode))(_ ++ _)
+    list.map(ByteEncoder[A].encode).foldLeft(ByteEncoder[BigNat].encode(nat(BigInt(list.size))))(_ ++ _)
   }
 
   implicit def optionEncoder[A: ByteEncoder]: ByteEncoder[Option[A]] = listEncoder[A].contramap(_.toList)
 
   private def sortedListEncoder[A: ByteEncoder]: ByteEncoder[List[A]] = { list =>
-    (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode).sortBy(_.toHex))(_ ++ _)
+    list.map(ByteEncoder[A].encode).sortBy(_.toHex).foldLeft(ByteEncoder[BigNat].encode(nat(BigInt(list.size))))(_ ++ _)
   }
 
   implicit val variableBytes: ByteEncoder[ByteVector] = { byteVector =>
@@ -95,7 +95,7 @@ object ByteEncoder {
     val (int, bytes) = node match {
       case MerkleTrieNode.Branch(prefix, children) =>
         val existanceBytes = BitVector.bits(children.unsized.map(_.nonEmpty)).bytes
-        val concat: ByteVector = (existanceBytes /: children.flatMap(_.toList))(_ ++ _)
+        val concat: ByteVector = children.flatMap(_.toList).foldLeft(existanceBytes)(_ ++ _)
         (prefixNibbleSize, prefix.bytes ++ concat)
       case MerkleTrieNode.Leaf(prefix, value) =>
         ((1 << 7) + prefixNibbleSize, prefix.bytes ++ variableBytes.encode(value))

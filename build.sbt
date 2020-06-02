@@ -17,17 +17,17 @@ lazy val scalacheckVersion = "1.14.3"
 lazy val scribeVersion = "2.7.12"
 lazy val acyclicVersion = "0.2.0"
 lazy val silencerVersion = "1.4.1"
-lazy val splainVersion = "0.4.1"
+lazy val splainVersion = "0.5.6"
 lazy val kindProjectorVersion = "0.10.3"
 lazy val betterMonadicForVersion = "0.3.0"
-lazy val scalaTypedHoleVersion = "0.1.0"
+lazy val scalaTypedHoleVersion = "0.1.3"
 
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 lazy val sharedSettings = Seq(
   organization := "org.witnessium",
   version := "0.0.1-SNAPSHOT",
-  scalaVersion := "2.12.9",
+  scalaVersion := "2.12.11",
 
   autoCompilerPlugins := true,
   addCompilerPlugin("com.lihaoyi" %% "acyclic" % acyclicVersion),
