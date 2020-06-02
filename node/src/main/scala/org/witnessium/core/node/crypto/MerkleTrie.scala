@@ -207,7 +207,7 @@ object MerkleTrie {
           def flatten(
             enums: List[Iterant[EitherT[F, String, *], (BitVector, A)]]
           ): Iterant[EitherT[F, String, *], (BitVector, A)] = {
-            (Iterant.empty[EitherT[F, String, *], (BitVector, A)] /: enums)(_ ++ _)
+            enums.foldLeft(Iterant.empty[EitherT[F, String, *], (BitVector, A)])(_ ++ _)
           }
 
           if (key <= prefix.value) {

@@ -9,8 +9,9 @@ import eu.timepit.refined.refineMV
 import eu.timepit.refined.numeric.NonNegative
 import crypto.MerkleTrie
 import crypto.MerkleTrie.MerkleTrieState
+import codec.byte.ByteEncoder
 import datatype.{BigNat, MerkleTrieNode, UInt256Bytes, UInt256Refine}
-import model.{Address, Block, BlockHeader, Genesis, NetworkId, Transaction}
+import model.{Account, Block, BlockHeader, Genesis, NetworkId, Transaction}
 import repository.StateRepository._
 import store.HashStore
 
@@ -23,7 +24,7 @@ object GenesisBlockSetupService {
   def getGenesisBlock(
     networkId: NetworkId,
     genesisInstant: Instant,
-    initialDistribution: Map[Address, BigNat],
+    initialDistribution: Map[Account, BigNat],
   ): (Block, MerkleTrieState, Transaction.Verifiable) = {
 
     val transaction = Transaction(
@@ -40,8 +41,8 @@ object GenesisBlockSetupService {
         def put(node: MerkleTrieNode): EitherT[Id, String, Unit] = EitherT.pure(())
       }
 
-      initialDistribution.keys.toList.traverse{ address =>
-          MerkleTrie.put((address.bytes ++ transactionHash).bits, ())
+      initialDistribution.keys.toList.traverse{ account =>
+          MerkleTrie.put((ByteEncoder[Account].encode(account) ++ transactionHash).bits, ())
       }.runS(MerkleTrieState.empty).value
     }
 
@@ -50,6 +51,7 @@ object GenesisBlockSetupService {
     val genesisBlockHeader: BlockHeader = BlockHeader(
       number = refineMV[NonNegative](BigInt(0)),
       parentHash = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
+      namesRoot = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
       stateRoot = stateRoot,
       transactionsRoot = crypto.hash[List[Transaction]](List(transaction)),
       timestamp = genesisInstant,

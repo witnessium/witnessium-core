@@ -9,6 +9,6 @@ final case class TransactionInfoBrief(
   txHash: UInt256Bytes,
   blockNumber: BigNat,
   confirmedAt: Instant,
-  inputAddress: Option[Address],
-  outputs: List[(Address, BigNat)],
+  inputAccount: Option[Account],
+  outputs: List[(Account, BigNat)],
 )

@@ -5,7 +5,7 @@ import scala.util.Try
 import io.finch.{DecodeEntity, DecodePath}
 import scodec.bits.ByteVector
 import datatype.{UInt256Bytes, UInt256Refine}
-import model.Address
+import model.Account
 
 package object endpoint {
 
@@ -16,9 +16,9 @@ package object endpoint {
     } yield refined).toOption
   }
 
-  implicit val addressDecodePath: DecodePath[Address] = Address.fromHex(_).toOption
+  implicit val accountDecodePath: DecodePath[Account] = Account.from(_).toOption
 
-  implicit val addressDecodeEntity: DecodeEntity[Address] = Address.fromHex(_).left.map(new Exception(_))
+  implicit val accountDecodeEntity: DecodeEntity[Account] = Account.from(_).left.map(new Exception(_))
 
   implicit val bigintDecodePath: DecodePath[BigInt] = { s => Try(BigInt(s)).toOption }
 

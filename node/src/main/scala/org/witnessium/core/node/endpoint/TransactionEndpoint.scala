@@ -12,7 +12,7 @@ import io.finch.circe._
 import codec.circe._
 import crypto.KeyPair
 import datatype.{MerkleTrieNode, UInt256Bytes}
-import model.{Address, Transaction}
+import model.{Account, Transaction}
 import model.api.{TransactionInfo, TransactionInfoBrief}
 import repository.{BlockRepository, TransactionRepository}
 import service.TransactionService
@@ -27,15 +27,15 @@ object TransactionEndpoint {
     import finch._
 
     get("transaction"
-      :: param[Address]("address")
+      :: param[Account]("account")
       :: paramOption[Int]("offset")
       :: paramOption[Int]("limit")
-    ) { (address: Address, offsetOption: Option[Int], limitOption: Option[Int]) =>
-      TransactionService.findByAddress[F](address, offsetOption getOrElse 0, limitOption getOrElse 10).value.map {
+    ) { (account: Account, offsetOption: Option[Int], limitOption: Option[Int]) =>
+      TransactionService.findByAccount[F](account, offsetOption getOrElse 0, limitOption getOrElse 10).value.map {
         case Right(txInfos) => Ok(txInfos)
         case Left(errorMsg) =>
           scribe.info(
-            s"Index transaction with address: $address offset:$offsetOption limit:limitOption error response: $errorMsg"
+            s"Index transaction with account: $account offset:$offsetOption limit:limitOption error response: $errorMsg"
           )
           InternalServerError(new Exception(errorMsg))
       }

@@ -28,9 +28,9 @@ object BlockInfo {
   )
 
   final case class TransactionItem(
-    sendAddress: Option[Address],
+    sendAccount: Option[Account],
     amt: Option[BigInt],
-    receiveAddress: Address,
+    receiveAccount: Account,
     value: BigNat,
   )
 }

@@ -9,7 +9,6 @@ import com.twitter.finagle.{Http, ListeningServer, Service}
 import com.twitter.finagle.http.filter.Cors
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.finagle.param.Stats
-import com.twitter.io.Buf
 import com.twitter.server.TwitterServer
 import com.twitter.util.{Await, Future => TwitterFuture}
 import eu.timepit.refined.pureconfig._
@@ -30,7 +29,7 @@ import client.interpreter.GossipClientInterpreter
 import crypto.Hash.ops._
 import datatype.{BigNat, Confidential, MerkleTrieNode, UInt256Bytes}
 import endpoint._
-import model.{Address, Block, BlockHeader, NetworkId, Transaction}
+import model.{Account, Block, BlockHeader, NetworkId, Transaction}
 import repository._
 import repository.StateRepository._
 import service._
@@ -47,12 +46,12 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   final case class NodeConfig(networkId: NetworkId, port: Port, nodeNumber: Int, privateKey: Confidential[String])
   final case class PeerConfig(hostname: String, port: Port, nodeNumber: Int, publicKey: String)
-  final case class GenesisConfig(initialDistribution: Map[Address, BigNat], createdAt: Instant)
+  final case class GenesisConfig(initialDistribution: Map[Account, BigNat], createdAt: Instant)
   final case class Config(node: NodeConfig, peers: List[PeerConfig], genesis: GenesisConfig)
 
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, SnakeCase))
 
-  val configEither: Either[ConfigReaderFailures, Config] = pureconfig.loadConfig[Config]
+  val configEither: Either[ConfigReaderFailures, Config] = pureconfig.ConfigSource.default.load[Config]
   scribe.info(s"load config: $configEither")
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
@@ -106,8 +105,8 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
   implicit val transctionHashStore: HashStore[IO, Transaction.Verifiable] =
     new HashStoreSwayInterpreter[Transaction.Verifiable](swayDb(Paths.get("sway", "transaction")))
 
-  implicit val addressTransactionIndex: StoreIndex[IO, (Address, UInt256Bytes), Unit] =
-    new StoreIndexSwayInterpreter(Paths.get("sway", "transaction", "index", "address"))
+  implicit val accountTransactionIndex: StoreIndex[IO, (Account, UInt256Bytes), Unit] =
+    new StoreIndexSwayInterpreter(Paths.get("sway", "transaction", "index", "account"))
 
   val transactionRepository: TransactionRepository[IO] = implicitly[TransactionRepository[IO]]
 
@@ -127,12 +126,10 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   val htmlEndpoint: Endpoint[IO, Html] = finch.get(finch.pathEmpty) { Ok(Index.skeleton) }
 
-  val javascriptEndpoint: Endpoint[IO, Buf] = JsFileEndpoint.Get[IO]
-
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   val jsonEndpoint = (NodeStatusEndpoint.Get[IO](nodeConfig.networkId, genesisBlock.toHash)
-    :+: AddressEndpoint.GetUtxo[IO]
-    :+: AddressEndpoint.GetInfo[IO]
+    :+: AccountEndpoint.GetUtxo[IO]
+    :+: AccountEndpoint.GetInfo[IO]
     :+: BlockEndpoint.Index[IO]
     :+: BlockEndpoint.Get[IO]
     :+: BlockEndpoint.GetInfo[IO]
@@ -150,14 +147,15 @@ object WitnessiumNode extends TwitterServer with ServingHtml with EncodeExceptio
 
   lazy val api: Service[Request, Response] = new Cors.HttpFilter(policy).andThen(Bootstrap
     .serve[Text.Html](htmlEndpoint)
-    .serve[Application.Javascript](javascriptEndpoint)
     .serve[Application.Json](jsonEndpoint)
+    .serve[Application.Javascript](finch.classpathAsset("witnessium-core-js-fastopt.js"))
+    .serve[Application.Javascript](finch.classpathAsset("witnessium-core-js-fastopt.js.map"))
+    .serve[Application.Javascript](finch.classpathAsset("witnessium-core-js-jsdeps.min.js"))
     .toService
   )
 
   scribe.info(s"=== Endpoints ===")
   scribe.info(s"HTML: $htmlEndpoint")
-  scribe.info(s"Javascript: $javascriptEndpoint")
   scribe.info(s"JSON: $jsonEndpoint")
 
   /****************************************

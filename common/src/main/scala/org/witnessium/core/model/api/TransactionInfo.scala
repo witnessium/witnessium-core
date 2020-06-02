@@ -32,7 +32,7 @@ object TransactionInfo {
   final case class Item(
     sendAddress: Option[UInt256Bytes],
     amt: Option[BigInt],
-    receiveAddress: Option[Address],
+    receiveAccount: Option[Account],
     value: Option[BigNat],
   )
 }

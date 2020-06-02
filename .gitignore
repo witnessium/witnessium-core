@@ -22,3 +22,4 @@ sway/
 .bloop
 .idea
 .metals
+project/metals.sbt

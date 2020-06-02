@@ -20,7 +20,7 @@ object BloomFilter {
 
     val hashValues: Seq[Long] = keccak256s flatMap hashes(numberOfHash)
 
-    BloomFilter((BitVector.low(NumberOfBits.toLong) /: hashValues)(_ set _), numberOfHash)
+    BloomFilter(hashValues.foldLeft(BitVector.low(NumberOfBits.toLong))(_ set _), numberOfHash)
   }
 
   private[p2p] def hashes(numberOfHash: Int)(keccak256: UInt256Bytes): Seq[Long] = for {

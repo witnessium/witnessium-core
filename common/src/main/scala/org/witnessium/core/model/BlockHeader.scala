@@ -7,6 +7,7 @@ import datatype.{BigNat, UInt256Bytes}
 final case class BlockHeader(
   number: BigNat,
   parentHash: UInt256Bytes,
+  namesRoot: UInt256Bytes,
   stateRoot: UInt256Bytes,
   transactionsRoot: UInt256Bytes,
   timestamp: Instant

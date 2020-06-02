@@ -8,6 +8,7 @@ import com.github.ghik.silencer.silent
 
 @silent
 @js.native
+@JSGlobal
 class Vue extends js.Object {
   def this(obj: js.Any) = this()
   // instance properties
@@ -66,14 +67,15 @@ class Vue extends js.Object {
   def $addChild(constructor:js.Function):Unit=js.native
 }
 
-@JSGlobal
 @js.native
+@JSGlobal
 class Unwatch extends js.Object {
   def unwatch():Unit =js.native
 }
 
 @silent
 @js.native
+@JSGlobal
 object Vue extends js.Object{
   def config:js.Dynamic=js.native
   def extend(obj:js.Any):Vue=js.native
@@ -97,8 +99,8 @@ object Vue extends js.Object{
   def delete(target:js.Any,key:js.Any):Unit=js.native
 }
 
-@JSGlobal
 @js.native
+@JSGlobal
 class Directive extends js.Object {
   def name:String =js.native
   def rawName:String =js.native

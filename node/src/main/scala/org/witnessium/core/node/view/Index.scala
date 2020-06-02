@@ -19,8 +19,8 @@ object Index {
       title(Title),
       link(rel:="stylesheet", href:="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.min.css"),
       script(defer, src:="https://use.fontawesome.com/releases/v5.3.1/js/all.js"),
-      script(defer, src:="/resource/js/witnessium-core-js-jsdeps.min.js"),
-      script(defer, src:="/resource/js/witnessium-core-js-fastopt.js"),
+      script(defer, src:="witnessium-core-js-jsdeps.min.js"),
+      script(defer, src:="witnessium-core-js-fastopt.js"),
     ),
     body(
       div(id:="app")(

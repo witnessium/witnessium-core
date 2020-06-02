@@ -106,10 +106,12 @@ trait ModelArbitrary {
   implicit val arbitraryBlockHeader: Arbitrary[BlockHeader] = Arbitrary(for {
     number <- arbitraryBigNat.arbitrary
     parentHash <- arbitraryUInt256Bytes.arbitrary
+    namesRoot <- arbitraryUInt256Bytes.arbitrary
     stateRoot <- arbitraryUInt256Bytes.arbitrary
     transactionsRoot <- arbitraryUInt256Bytes.arbitrary
     long <- Gen.choose[Long](100000000000L, 10000000000000L)
-  } yield BlockHeader(number, parentHash, stateRoot, transactionsRoot, Instant.ofEpochMilli(long.abs)))
+    timestamp = Instant.ofEpochMilli(long.abs)
+  } yield BlockHeader(number, parentHash, namesRoot, stateRoot, transactionsRoot, timestamp))
 
   implicit val arbitraryBlock: Arbitrary[Block] = Arbitrary(for {
     heder <- arbitraryBlockHeader.arbitrary

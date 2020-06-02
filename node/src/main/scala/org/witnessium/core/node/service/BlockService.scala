@@ -6,7 +6,7 @@ import cats.Monad
 import cats.data.{EitherT, OptionT}
 import cats.implicits._
 import datatype.{BigNat, UInt256Bytes}
-import model.{Block, BlockHeader}
+import model.{Account, Block, BlockHeader}
 import model.api.{BlockInfo, BlockInfoBrief}
 import repository.{BlockRepository, TransactionRepository}
 
@@ -47,7 +47,7 @@ object BlockService {
     block <- OptionT(implicitly[BlockRepository[F]].get(blockHash))
     txs <- block.transactionHashes.toList.traverse(txHash => for {
       tx <- OptionT(implicitly[TransactionRepository[F]].get(txHash))
-      senderOption = ServiceUtil.transactionToSenderAddress(tx)(txHash)
+      senderOption = ServiceUtil.transactionToSenderAddress(tx)(txHash).map(Account.Unnamed)
       inputs <- tx.value.inputs.toList.traverse{ inputHash =>
         OptionT(implicitly[TransactionRepository[F]].get(inputHash))
       }
@@ -65,14 +65,14 @@ object BlockService {
       tranHash = txHash,
       totalValue = tx.value.outputs.map(_._2.value).sum,
       items = {
-        val (h::t) = tx.value.outputs.toList.map{ case (address, amount) => BlockInfo.TransactionItem(
-          sendAddress = None,
+        val (h::t) = tx.value.outputs.toList.map{ case (account, amount) => BlockInfo.TransactionItem(
+          sendAccount = None,
           amt = None,
-          receiveAddress = address,
+          receiveAccount = account,
           value = amount,
         )}
         h.copy(
-          sendAddress = senderOption,
+          sendAccount = senderOption,
           amt = senderOption.map{ sender =>
             inputs.flatMap{ input => input.value.outputs.filter(_._1 === sender).map(_._2.value) }.sum
           }

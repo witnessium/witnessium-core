@@ -10,9 +10,26 @@ import datatype.BigNat
 
 import codec.byte.{ByteDecoder, ByteEncoder}
 
-sealed trait Account
+sealed trait Account {
+  override def toString: String = this match {
+    case Account.Named(name) =>
+      val str = name.toString
+      if (str startsWith "0x") "0" ++ str else str
+    case Account.Unnamed(address) =>
+      "0x" ++ address.toString
+  }
+}
 
 object Account {
+
+  def from(str: String): Either[String, Account] = str match {
+    case _ if str startsWith "0x" =>
+      Address.fromHex(str drop 2).map(Account.Unnamed)
+    case _ if str startsWith "00x" =>
+      Account.Name.from(str drop 1).map(Account.Named)
+    case _ =>
+      Account.Name.from(str).map(Account.Named)
+  }
 
   final case class Named(
     name: Name,

@@ -19,7 +19,7 @@ package object crypto {
   val CurveParams: X9ECParameters = CustomNamedCurves.getByName("secp256k1")
   val Curve: ECDomainParameters = new ECDomainParameters(
     CurveParams.getCurve, CurveParams.getG, CurveParams.getN, CurveParams.getH)
-  val HalfCurveOrder = BigInt(CurveParams.getN) / 2
+  val HalfCurveOrder: BigInt = BigInt(CurveParams.getN) / 2
 
   /** Keccak256 hash function
     *  @param input input byte array

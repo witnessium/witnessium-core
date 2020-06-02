@@ -15,8 +15,8 @@ import crypto._
 import crypto.MerkleTrie.MerkleTrieState
 import crypto.KeyPair
 import crypto.Hash.ops._
-import datatype.{BigNat, MerkleTrieNode, UInt256Bytes}
-import model.{Address, Block, BlockHeader, Transaction}
+import datatype.{BigNat, MerkleTrieNode, UInt256Bytes, UInt256Refine}
+import model.{Account, Address, Block, BlockHeader, Transaction}
 import model.api.{TransactionInfo, TransactionInfoBrief}
 import repository.{BlockRepository, StateRepository, TransactionRepository}
 import repository.StateRepository._
@@ -37,14 +37,14 @@ object TransactionService {
     txHash = txHash,
     blockNumber = block.header.number,
     confirmedAt = block.header.timestamp,
-    inputAddress = ServiceUtil.transactionToSenderAddress(tx)(txHash),
+    inputAccount = ServiceUtil.transactionToSenderAddress(tx)(txHash).map(Account.Unnamed),
     outputs = tx.value.outputs.toList,
   )
 
-  def findByAddress[F[_]: Monad: BlockRepository: TransactionRepository](
-    address: Address, offset: Int, limit: Int
+  def findByAccount[F[_]: Monad: BlockRepository: TransactionRepository](
+    account: Account, offset: Int, limit: Int
   ): EitherT[F, String, List[TransactionInfoBrief]] = for {
-    txHashes <- implicitly[TransactionRepository[F]].listByAddress(address, offset, limit)
+    txHashes <- implicitly[TransactionRepository[F]].listByAccount(account, offset, limit)
     txInfos <- txHashes.traverse[EitherT[F, String, *], TransactionInfoBrief](transactionHashToTransactionInfo)
   } yield txInfos.sortBy(-_.confirmedAt.getEpochSecond())
 
@@ -54,7 +54,7 @@ object TransactionService {
 
     def toTxInfoData(
       inputUtxos: List[(UInt256Bytes, BigInt)],
-      outputs: List[(Address, BigNat)],
+      outputs: List[(Account, BigNat)],
     ): List[TransactionInfo.Item] = {
       val input1 = inputUtxos.map{
         case (hash, amount) => (Some(hash), Some(amount))
@@ -62,8 +62,8 @@ object TransactionService {
       val output1 = outputs.map {
         case (address, amount) => (Some(address), Some(amount))
       } ::: List.fill(inputUtxos.size - outputs.size max 0)((None, None))
-      input1 zip output1 map { case ((inHash, inAmount), (outAddress, outAmount)) =>
-        TransactionInfo.Item(inHash, inAmount, outAddress, outAmount)
+      input1 zip output1 map { case ((inHash, inAmount), (outAccount, outAmount)) =>
+        TransactionInfo.Item(inHash, inAmount, outAccount, outAmount)
       }
     }
 
@@ -87,7 +87,7 @@ object TransactionService {
           } yield (
             inputTxHash,
             inputTx.value.outputs.filter{ output =>
-              Option(output._1) === sendAddressOption
+              Option(output._1) === sendAddressOption.map(Account.Unnamed(_))
             }.map(_._2.value).sum
           )
         }
@@ -128,12 +128,13 @@ object TransactionService {
     now <- EitherT.right[String](Timer[F].clock.realTime(MILLISECONDS))
     fromAddress <- EitherT.fromEither[F](addressFromSignedTransaction(transaction))
     _ <- EitherT.right(Sync[F].pure(scribe.info(s"From address: $fromAddress")))
-    state <- MerkleTrieState.fromRoot(bestBlockHeader.stateRoot).put(fromAddress, transaction.value)
+    state <- MerkleTrieState.fromRoot(bestBlockHeader.stateRoot).put(Account.Unnamed(fromAddress), transaction.value)
     stateRoot <- EitherT.fromOption[F](state.root, s"No root is found from $state")
 
     newBlockHeader = BlockHeader(
       number = number,
       parentHash = bestBlockHeader.toHash,
+      namesRoot = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
       stateRoot = stateRoot,
       transactionsRoot = crypto.hash(List(txHash)),
       timestamp = Instant.ofEpochMilli(now),

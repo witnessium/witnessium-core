@@ -13,7 +13,7 @@ import pureconfig.error.CannotConvert
 import scalatags.Text.TypedTag
 
 import datatype.BigNat
-import model.Address
+import model.Account
 
 package object node extends util.AsyncConvert {
   type Html = TypedTag[String]
@@ -21,8 +21,8 @@ package object node extends util.AsyncConvert {
   type PortRange = Interval.Closed[W.`0`.T, W.`65535`.T]
   type Port = Int Refined PortRange
 
-  implicit val mapReader: ConfigReader[Map[Address, BigNat]] = pureconfig.configurable.genericMapReader{
-    str => Address.fromHex(str).left.map(CannotConvert(str, "Address", _))
+  implicit val mapReader: ConfigReader[Map[Account, BigNat]] = pureconfig.configurable.genericMapReader{
+    str => Account.from(str).left.map(CannotConvert(str, "Account", _))
   }
 
   implicit class AsyncOps[F[_], A](val a: F[A]) extends AnyVal {

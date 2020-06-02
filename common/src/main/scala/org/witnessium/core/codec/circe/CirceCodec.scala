@@ -63,22 +63,11 @@ trait CirceCodec {
 
   implicit val circeUInt256BytesKeyEncoder: KeyEncoder[UInt256Bytes] = KeyEncoder.instance(_.toBytes.toBase64)
 
-  implicit val circeAccountKeyDecoder: KeyDecoder[Account] = KeyDecoder.instance{
-    case str: String if str startsWith "0x" =>
-      Address.fromHex(str drop 2).toOption.map(Account.Unnamed(_))
-    case str: String if str startsWith "00" =>
-      Account.Name.from(str drop 1).toOption.map(Account.Named(_))
-    case str: String =>
-      Account.Name.from(str).toOption.map(Account.Named(_))
+  implicit val circeAccountKeyDecoder: KeyDecoder[Account] = KeyDecoder.instance{ (str: String) =>
+    Account.from(str).toOption
   }
 
-  implicit val circeAccountKeyEncoder: KeyEncoder[Account] = KeyEncoder.instance {
-    case Account.Named(name) =>
-      val str = name.toString
-      if (str startsWith "0") "0" ++ str else str
-    case Account.Unnamed(address) =>
-      "0x" ++ address.toString
-  }
+  implicit val circeAccountKeyEncoder: KeyEncoder[Account] = KeyEncoder.instance(_.toString)
 
   implicit val circeAddressKeyDecoder: KeyDecoder[Address] = KeyDecoder.instance{ (str: String) =>
     Address.fromHex(str).toOption
