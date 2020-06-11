@@ -11,6 +11,7 @@ import cats.implicits._
 import monix.tail.Iterant
 import scodec.bits.{BitVector, ByteVector}
 
+import crypto.Hash.ops._
 import datatype.{UInt256Bytes, UInt256Refine}
 import model.Address
 import MerkleTrie._
@@ -51,7 +52,7 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
 
   def sample: (BitVector, Address) = {
     val address = Arbitrary.arbitrary[Address].pureApply(Gen.Parameters.default, Seed.random())
-    val key = hash[Address](address)
+    val key = address.toHash
     (key.toBytes.bits, address)
   }
   val (sampleKey, sampleValue) = sample
@@ -113,14 +114,14 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
     test("put 2 samples in the same branch and remove one and from") {
 
       val sample1 = Address.fromHex("5d80ffff5c8001011833515d00017246d8ff1de1").toOption.get
-      val sample1Hash = hash[Address](sample1).bits
+      val sample1Hash = sample1.toHash.bits
       val sample2 = Address.fromHex("805f7f010137695500800106001b7f0000ff0100").toOption.get
-      val sample2Hash = hash[Address](sample2).bits
+      val sample2Hash = sample2.toHash.bits
 
       val program = for {
         _ <- put[Id, Address](sample1Hash, sample1)
         _ <- put[Id, Address](sample2Hash, sample2)
-        _ <- removeByKey[Id](hash[Address](sample1).bits)
+        _ <- removeByKey[Id](sample1.toHash.bits)
         resultIterant <- from[Id, Address](BitVector.empty)
         resultValue <- iterantToList(resultIterant)
       } yield resultValue
@@ -136,7 +137,7 @@ object MerkleTrieTest extends TestSuite with ModelArbitrary {
         "7ba17f7f018ffefa01007fa7ffde7affeaff2de8",
         "55ff7f80015e009bff7b533b80ffffd5ffee2030",
         "1080ff64648801831d7f00d180f9907f00ff6be5",
-      ).map(Address.fromHex).map(_.toOption.get).map{ address => (hash[Address](address).bits, address) }
+      ).map(Address.fromHex).map(_.toOption.get).map{ address => (address.toHash.bits, address) }
 
       val expected = samples.tail.sortBy(_._1.toHex)
 

@@ -4,6 +4,7 @@ package service
 package interpreter
 
 import cats.effect.IO
+import crypto.Hash.ops._
 import datatype.UInt256Bytes
 import model.{GossipMessage, Transaction}
 
@@ -17,6 +18,6 @@ class TransactionServiceInterpreter(
       newTransactions = Set[Transaction.Verifiable](transaction),
     )
     scribe.info(s"Generate new gossip message: $gossipMessage")
-    gossipListener(gossipMessage).map(_ => crypto.hash[Transaction](transaction.value))
+    gossipListener(gossipMessage).map(_ => transaction.value.toHash)
   }
 }

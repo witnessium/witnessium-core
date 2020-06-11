@@ -7,6 +7,7 @@ import cats.data.EitherT
 import cats.implicits._
 import eu.timepit.refined.refineMV
 import eu.timepit.refined.numeric.NonNegative
+import crypto.Hash.ops._
 import crypto.MerkleTrie
 import crypto.MerkleTrie.MerkleTrieState
 import codec.byte.ByteEncoder
@@ -33,7 +34,7 @@ object GenesisBlockSetupService {
       outputs = initialDistribution.toSet,
     )
 
-    val transactionHash = crypto.hash[Transaction](transaction)
+    val transactionHash = transaction.toHash
 
     val Right(state) = {
       implicit val dummyNodeStore: HashStore[Id, MerkleTrieNode] =  new HashStore[Id, MerkleTrieNode] {
@@ -50,10 +51,10 @@ object GenesisBlockSetupService {
 
     val genesisBlockHeader: BlockHeader = BlockHeader(
       number = refineMV[NonNegative](BigInt(0)),
-      parentHash = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
-      namesRoot = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
+      parentHash = UInt256Refine.EmptyBytes.toHash,
+      namesRoot = UInt256Refine.EmptyBytes.toHash,
       stateRoot = stateRoot,
-      transactionsRoot = crypto.hash[List[Transaction]](List(transaction)),
+      transactionsRoot = List(transactionHash).toHash,
       timestamp = genesisInstant,
     )
 

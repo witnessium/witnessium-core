@@ -9,6 +9,7 @@ import cats.implicits._
 import scodec.bits.BitVector
 
 import codec.byte.{ByteDecoder, ByteEncoder}
+import crypto.Hash.ops._
 import crypto.MerkleTrie
 import crypto.MerkleTrie.{MerkleTrieState, NodeStore}
 import datatype.{MerkleTrieNode, UInt256Bytes, UInt256Refine}
@@ -59,7 +60,7 @@ object StateRepository {
     def put[F[_]:NodeStore:Monad](account: Account, transaction: Transaction): EitherT[F, String, MerkleTrieState] = {
       scribe.info(s"Put account: $account, transaction: $transaction")
       val accoountBits: BitVector = ByteEncoder[Account].encode(account).bits
-      val txBytes = crypto.hash(transaction)
+      val txBytes = transaction.toHash
       val program = for {
         _ <- transaction.inputs.toList.traverse{
           txHash => MerkleTrie.removeByKey(accoountBits ++ txHash.bits)

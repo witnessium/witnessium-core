@@ -134,9 +134,9 @@ object TransactionService {
     newBlockHeader = BlockHeader(
       number = number,
       parentHash = bestBlockHeader.toHash,
-      namesRoot = crypto.hash[UInt256Bytes](UInt256Refine.EmptyBytes),
+      namesRoot = UInt256Refine.EmptyBytes.toHash,
       stateRoot = stateRoot,
-      transactionsRoot = crypto.hash(List(txHash)),
+      transactionsRoot = List(txHash).toHash,
       timestamp = Instant.ofEpochMilli(now),
     )
     newBlockHash = newBlockHeader.toHash

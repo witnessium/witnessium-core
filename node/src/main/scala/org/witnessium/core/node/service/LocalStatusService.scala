@@ -6,6 +6,7 @@ import cats.Functor
 import eu.timepit.refined.refineMV
 import eu.timepit.refined.numeric.NonNegative
 import cats.data.EitherT
+import crypto.Hash.ops._
 import datatype.UInt256Bytes
 import model.{NetworkId, NodeStatus}
 import repository.BlockRepository
@@ -20,7 +21,7 @@ object LocalStatusService {
   } yield NodeStatus(
     networkId = networkId,
     genesisHash = genesisHash,
-    bestHash = bestBlockHeader.fold(genesisHash)(crypto.hash),
+    bestHash = bestBlockHeader.fold(genesisHash)(_.toHash),
     number = bestBlockHeader.fold(refineMV[NonNegative](BigInt(0)))(_.number),
   )
 }

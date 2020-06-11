@@ -14,6 +14,7 @@ import shapeless.nat._16
 import shapeless.syntax.sized._
 import codec.byte.{ByteDecoder, ByteEncoder, DecodeResult}
 import datatype.{MerkleTrieNode, UInt256Bytes}
+import Hash.ops._
 import org.witnessium.core.util.refined.bitVector._
 
 object MerkleTrie {
@@ -51,7 +52,7 @@ object MerkleTrie {
   ): StateT[EitherT[F, String, *], MerkleTrieState, Unit] = StateT.modifyF((state: MerkleTrieState) => state.root match {
     case None =>
       val leaf =  MerkleTrieNode.Leaf(ensurePrefix(key), ByteEncoder[A].encode(value))
-      val leafHash = hash[MerkleTrieNode](leaf)
+      val leafHash = leaf.toHash
       EitherT.rightT[F, String](state.copy(
         root = Some(leafHash),
         diff = state.diff.add(leafHash, leaf),
@@ -70,16 +71,16 @@ object MerkleTrie {
           case MerkleTrieNode.Leaf(_, value0) =>
             val (index00, prefix00) = remainder0 splitAt 4L
             val leaf0 = MerkleTrieNode.Leaf(ensurePrefix(prefix00), value0)
-            val leaf0hash = hash[MerkleTrieNode](leaf0)
+            val leaf0hash = leaf0.toHash
             val leaf1 = MerkleTrieNode.Leaf(ensurePrefix(prefix1), ByteEncoder[A].encode(value))
-            val leaf1hash = hash[MerkleTrieNode](leaf1)
+            val leaf1hash = leaf1.toHash
             val branch = MerkleTrieNode.Branch(ensurePrefix(commonPrefix),
               Vector.fill(16)(None)
                 .updated(index00.toInt(signed = false), Some(leaf0hash))
                 .updated(index1.toInt(signed = false), Some(leaf1hash))
                 .ensureSized[_16]
             )
-            val branchHash = hash[MerkleTrieNode](branch)
+            val branchHash = branch.toHash
             EitherT.rightT[F, String](state.copy(
               root = Some(branchHash),
               diff = state.diff.add(branchHash, branch).add(leaf0hash, leaf0).add(leaf1hash, leaf1).remove(root),
@@ -88,13 +89,13 @@ object MerkleTrie {
             children.unsized(index1.toInt(signed = false)) match {
               case None =>
                 val leaf1 = MerkleTrieNode.Leaf(ensurePrefix(prefix1), ByteEncoder[A].encode(value))
-                val leaf1hash = hash[MerkleTrieNode](leaf1)
+                val leaf1hash = leaf1.toHash
                 val branch = MerkleTrieNode.Branch(ensurePrefix(commonPrefix),
                   children.unsized
                     .updated(index1.toInt(signed = false), Some(leaf1hash))
                     .ensureSized[_16]
                 )
-                val branchHash = hash[MerkleTrieNode](branch)
+                val branchHash = branch.toHash
                 EitherT.rightT[F, String](state.copy(
                   root = Some(branchHash),
                   diff = state.diff.add(branchHash, branch).add(leaf1hash, leaf1).remove(root),
@@ -106,7 +107,7 @@ object MerkleTrie {
                       .updated(index1.toInt(signed = false), childState.root)
                       .ensureSized[_16]
                   )
-                  val branchHash = hash[MerkleTrieNode](branch)
+                  val branchHash = branch.toHash
                   childState.copy(
                     root = Some(branchHash),
                     diff = childState.diff.add(branchHash, branch).remove(root)
@@ -116,16 +117,16 @@ object MerkleTrie {
           case MerkleTrieNode.Branch(_, children) =>
             val (index00, prefix00) = remainder0 splitAt 4L
             val branch00 = MerkleTrieNode.Branch(ensurePrefix(prefix00), children)
-            val branch00hash = hash[MerkleTrieNode](branch00)
+            val branch00hash = branch00.toHash
             val leaf1 = MerkleTrieNode.Leaf(ensurePrefix(prefix1), ByteEncoder[A].encode(value))
-            val leaf1hash = hash[MerkleTrieNode](leaf1)
+            val leaf1hash = leaf1.toHash
             val branch = MerkleTrieNode.Branch(ensurePrefix(commonPrefix),
               Vector.fill(16)(None)
                 .updated(index00.toInt(signed = false), Some(branch00hash))
                 .updated(index1.toInt(signed = false), Some(leaf1hash))
                 .ensureSized[_16]
             )
-            val branchHash = hash[MerkleTrieNode](branch)
+            val branchHash = branch.toHash
             EitherT.rightT[F, String](state.copy(
               root = Some(branchHash),
               diff = state.diff.add(branchHash, branch).add(branch00hash, branch00).add(leaf1hash, leaf1).remove(root),
@@ -169,7 +170,7 @@ object MerkleTrie {
                     .updated(index1.toInt(signed = false), childState.root)
                     .ensureSized[_16]
                 )
-                val branchHash = hash[MerkleTrieNode](branch)
+                val branchHash = branch.toHash
 
                 compact runS state.copy(
                   root = Some(branchHash),
@@ -277,14 +278,14 @@ object MerkleTrie {
                 getNode(childState).map {
                   case MerkleTrieNode.Leaf(prefix0, value) =>
                     val nextLeaf = MerkleTrieNode.Leaf(getPrefix(prefix0), value)
-                    val nextLeafHash = hash[MerkleTrieNode](nextLeaf)
+                    val nextLeafHash = nextLeaf.toHash
                     state.copy(
                       root = Some(nextLeafHash),
                       diff = childState.diff.add(nextLeafHash, nextLeaf).remove(root),
                     )
                   case MerkleTrieNode.Branch(prefix0, children) =>
                     val nextBranch = MerkleTrieNode.Branch(getPrefix(prefix0), children)
-                    val nextBranchHash = hash[MerkleTrieNode](nextBranch)
+                    val nextBranchHash = nextBranch.toHash
                     state.copy(
                       root = Some(nextBranchHash),
                       diff = childState.diff.add(nextBranchHash, nextBranch).remove(root),
