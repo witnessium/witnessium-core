@@ -64,6 +64,8 @@ object ByteEncoder {
     (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode))(_ ++ _)
   }
 
+  implicit def optionEncoder[A: ByteEncoder]: ByteEncoder[Option[A]] = listEncoder[A].contramap(_.toList)
+
   private def sortedListEncoder[A: ByteEncoder]: ByteEncoder[List[A]] = { list =>
     (ByteEncoder[BigNat].encode(nat(BigInt(list.size))) /: list.map(ByteEncoder[A].encode).sortBy(_.toHex))(_ ++ _)
   }
@@ -81,6 +83,11 @@ object ByteEncoder {
   implicit def uint256RefineEncoder[A: UInt256RefineOps]: ByteEncoder[UInt256Refined[A]] = _.toBytes
 
   implicit val byteEncoder: ByteEncoder[Byte] = ByteVector.fromByte
+
+  implicit val stringEncoder: ByteEncoder[String] = (string => {
+    val Right(utf8) = ByteVector.encodeUtf8(string)
+    ByteEncoder[BigNat].encode(nat(BigInt(utf8.size))) ++ utf8
+  })
 
   implicit val longEncoder: ByteEncoder[Long] = ByteVector.fromLong(_)
 

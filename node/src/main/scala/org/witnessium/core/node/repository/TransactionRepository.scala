@@ -9,7 +9,7 @@ import cats.implicits._
 import crypto._
 import crypto.Hash.ops._
 import datatype.{UInt256Bytes, UInt256Refine}
-import model.{Address, Genesis, Signed, Transaction}
+import model.{Address, Genesis, Signed, MyGarageData, Transaction}
 import store.{HashStore, StoreIndex}
 
 trait TransactionRepository[F[_]] {
@@ -18,13 +18,21 @@ trait TransactionRepository[F[_]] {
 
   def buildIndex(transaction: Transaction.Verifiable): F[Unit]
   def listByAddress(address: Address, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]]
+  def listVehicleTxHashes: EitherT[F, String, List[UInt256Bytes]]
+  def listVehicleTxByVin(vin: String, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]]
+  def listPartTxHashes: EitherT[F, String, List[UInt256Bytes]]
+  def listPartTxByPartNo(partNo: String, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]]
 }
 
 object TransactionRepository {
 
-  implicit def fromStores[F[_]: Monad](implicit
+  def apply[F[_]](implicit tr: TransactionRepository[F]): TransactionRepository[F] = tr
+
+  def fromStores[F[_]: Monad](
     transctionHashStore: HashStore[F, Transaction.Verifiable],
     addressTransactionIndex: StoreIndex[F, (Address, UInt256Bytes), Unit],
+    vehicleTransactionIndex: StoreIndex[F, (String, UInt256Bytes), Unit],
+    partTransactionIndex: StoreIndex[F, (String, UInt256Bytes), Unit],
   ): TransactionRepository[F] = new TransactionRepository[F] {
 
     def get(transactionHash: UInt256Bytes): EitherT[F,String,Option[Transaction.Verifiable]] =
@@ -45,10 +53,17 @@ object TransactionRepository {
       })
       val outputAddresses: Set[Address] = transaction.value.outputs.map(_._1)
       val addressSet: Set[Address] = outputAddresses ++ incomingAddressOption.toList
+      val dataOption: Option[MyGarageData] = transaction.value.data
 
-      addressSet.toList.traverse{ address =>
-        addressTransactionIndex.put((address, txHash), ())
-      }.map(_ => ())
+      for {
+        _ <- addressSet.toList.traverse{ address =>
+          addressTransactionIndex.put((address, txHash), ())
+        }
+        _ <- dataOption.traverse{
+          case v: MyGarageData.Vehicle => vehicleTransactionIndex.put((v.vin, txHash), ())
+          case p: MyGarageData.Part => partTransactionIndex.put((p.partNo, txHash), ())
+        }
+      } yield ()
     }
 
     def listByAddress(address: Address, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]] =
@@ -57,5 +72,25 @@ object TransactionRepository {
           ((address1, txHash), ()) <- list if address1 === address
         } yield txHash
       }
+
+    def listVehicleTxHashes: EitherT[F, String, List[UInt256Bytes]] =
+      vehicleTransactionIndex.from(("", UInt256Refine.EmptyBytes), 0, Int.MaxValue).map(_.map{
+        case ((vin@_, txHash), ()) => txHash
+      })
+
+    def listVehicleTxByVin(vin: String, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]] =
+      vehicleTransactionIndex.from((vin, UInt256Refine.EmptyBytes), offset, limit).map(_.map{
+        case ((vin@_, txHash), ()) => txHash
+      })
+
+    def listPartTxHashes: EitherT[F, String, List[UInt256Bytes]] =
+      partTransactionIndex.from(("", UInt256Refine.EmptyBytes), 0, Int.MaxValue).map(_.map{
+        case ((partNo@_, txHash), ()) => txHash
+      })
+
+    def listPartTxByPartNo(partNo: String, offset: Int, limit: Int): EitherT[F, String, List[UInt256Bytes]] =
+      partTransactionIndex.from((partNo, UInt256Refine.EmptyBytes), offset, limit).map(_.map{
+        case ((partNo@_, txHash), ()) => txHash
+      })
   }
 }

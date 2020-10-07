@@ -30,6 +30,7 @@ object GenesisBlockSetupService {
       networkId = networkId,
       inputs = Set.empty,
       outputs = initialDistribution.toSet,
+      data = None,
     )
 
     val transactionHash = crypto.hash[Transaction](transaction)

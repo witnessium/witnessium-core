@@ -7,6 +7,7 @@ final case class Transaction(
   networkId: NetworkId,
   inputs: Set[UInt256Bytes],
   outputs: Set[(Address, BigNat)],
+  data: Option[MyGarageData],
 )
 
 object Transaction {
