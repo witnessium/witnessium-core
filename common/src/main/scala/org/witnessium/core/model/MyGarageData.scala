@@ -20,12 +20,12 @@ object MyGarageData {
     partNo: String,
     manufacturer: String,
     date: Instant,
-    warrenty: Instant,
+    warrenty: String,
     supplier: String,
     importer: String,
     seller: String,
     holder: String,
-    updatedAt: String,
+    updatedAt: Instant,
   ) extends MyGarageData
 
   implicit val mgdByteEncoder: ByteEncoder[MyGarageData] = {

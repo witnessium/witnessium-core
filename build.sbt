@@ -180,9 +180,7 @@ lazy val js = (project in file("js"))
   .settings(
     name := "witnessium-core-js",
     skip in packageJSDependencies := false,
-    jsDependencies ++= Seq(
-      "org.webjars" % "vue" % vueVersion / "vue.js",
-    )
+    jsDependencies += "org.webjars" % "vue" % vueVersion / "vue.js",
   )
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(common.js)
