@@ -24,6 +24,8 @@ import store.HashStore
 
 object TransactionService {
 
+  def hash(tx: Transaction): UInt256Bytes = tx.toHash
+
   def transactionHashToTransactionInfo[F[_]: Monad: BlockRepository: TransactionRepository](
     txHash: UInt256Bytes
   ): EitherT[F, String, TransactionInfoBrief] = for {
