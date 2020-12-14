@@ -12,9 +12,24 @@ import io.circe.syntax._
 import scodec.bits.{BitVector, ByteVector}
 
 import datatype.{UInt256BigInt, UInt256Bytes, UInt256Refine}
-import model.{Address, Genesis, Signed, Verifiable}
+import model.{Address, Genesis, MyGarageData, Signed, Verifiable}
 
 trait CirceCodec {
+
+  implicit def encodeMyGarageData: Encoder[MyGarageData] = {
+    Encoder.instance{
+      case p: MyGarageData.Part => p.asJson
+      case v: MyGarageData.Vehicle => v.asJson
+    }
+  }
+
+  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+  implicit def decodeMyGarageData: Decoder[MyGarageData] = {
+    List[Decoder[MyGarageData]](
+      Decoder[MyGarageData.Part].widen,
+      Decoder[MyGarageData.Vehicle].widen,
+    ).reduceLeft(_ or _)
+  }
 
   implicit val circeUInt256BigIntDecoder: Decoder[UInt256BigInt] =
     Decoder.decodeString.emap { (str: String) =>
